@@ -1,0 +1,3 @@
+Create database migrations for the use case #$ARGUMENTS.
+Create or update models.
+Use doc/entity_model.md as a reference for the relationships between the entities.

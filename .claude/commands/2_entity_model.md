@@ -1,3 +1,2 @@
-Create an entity model (doc/entity_model.md) based on doc/requirements.md as a Markdown file with an included
-Mermaid.js ERD diagram that shows the relationships between the entities.
-Use a generated id as the primary key.
+Create an empty file for the entity model (doc/entity_model.md). 
+Do not generate any diagrams or entity descriptions.

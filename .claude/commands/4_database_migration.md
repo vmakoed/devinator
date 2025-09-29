@@ -1,1 +1,0 @@
-Create database migrations for doc/entity_model.md.
