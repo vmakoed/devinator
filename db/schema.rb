@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_29_114033) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_29_130601) do
   create_table "assignments", force: :cascade do |t|
     t.integer "session_id", null: false
     t.integer "ticket_id", null: false
@@ -81,6 +81,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_29_114033) do
     t.text "parameters"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "name"
+    t.text "description"
     t.index ["session_id"], name: "index_jql_queries_on_session_id"
   end
 

@@ -16,7 +16,11 @@ Rails.application.routes.draw do
     end
 
     # Nested resources for session-specific functionality
-    resources :jql_queries, except: [:show]
+    resources :jql_queries, except: [:show] do
+      collection do
+        post :validate
+      end
+    end
     resources :tickets, only: [:index, :show]
     resources :recommendations, only: [:index, :show, :update]
     resources :assignments, only: [:index, :create, :show]

@@ -1,7 +1,7 @@
 class SessionsController < ApplicationController
   before_action :authenticate_user!
   before_action :ensure_can_create_sessions, only: [:new, :create]
-  before_action :set_session, only: [:show, :workspace]
+  before_action :set_session, only: [:show, :edit, :update, :destroy, :workspace]
 
   helper_method :current_user
 
@@ -39,6 +39,26 @@ class SessionsController < ApplicationController
     @jql_queries = @session.jql_queries.order(created_at: :desc)
     @tickets_count = @session.tickets.count
     @recommendations_count = @session.recommendations.count
+  end
+
+  def edit
+    @session_configurations = current_user.session_configurations.order(:configuration_name)
+  end
+
+  def update
+    if @session.update(session_params)
+      redirect_to workspace_session_path(@session),
+                  notice: "Session '#{@session.name}' updated successfully"
+    else
+      @session_configurations = current_user.session_configurations.order(:configuration_name)
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    session_name = @session.name
+    @session.destroy
+    redirect_to sessions_path, notice: "Session '#{session_name}' deleted successfully"
   end
 
   def workspace

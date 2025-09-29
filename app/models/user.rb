@@ -5,6 +5,7 @@ class User < ApplicationRecord
   has_many :assignments, foreign_key: 'created_by_user_id', dependent: :destroy
   has_many :complexity_criteria, foreign_key: 'created_by_user_id', dependent: :destroy
   has_many :audit_logs, dependent: :destroy
+  has_many :jql_queries, through: :sessions
 
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :name, presence: true, length: { minimum: 2, maximum: 100 }

@@ -1,0 +1,96 @@
+<div class="w-full">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">JQL Queries</h1>
+      <p class="text-gray-600 mt-1">Session: <%= @session.name %></p>
+    </div>
+    <div class="flex space-x-3">
+      <%= link_to "Back to Workspace", workspace_session_path(@session),
+          class: "inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50" %>
+      <%= link_to "Add JQL Query", new_session_jql_query_path(@session),
+          class: "inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700" %>
+    </div>
+  </div>
+
+  <!-- Queries List -->
+  <% if @jql_queries.any? %>
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+      <ul class="divide-y divide-gray-200">
+        <% @jql_queries.each do |query| %>
+          <li>
+            <div class="px-6 py-4">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">
+                      <%= query.display_name %>
+                    </h3>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      <%= case query.status
+                          when 'pending' then 'bg-yellow-100 text-yellow-800'
+                          when 'completed' then 'bg-green-100 text-green-800'
+                          when 'executing' then 'bg-blue-100 text-blue-800'
+                          when 'failed' then 'bg-red-100 text-red-800'
+                          else 'bg-gray-100 text-gray-800'
+                          end %>">
+                      <%= query.status.titleize %>
+                    </span>
+                  </div>
+
+                  <div class="mt-2">
+                    <code class="text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                      <%= truncate(query.formatted_query, length: 100) %>
+                    </code>
+                  </div>
+
+                  <% if query.description.present? %>
+                    <p class="text-sm text-gray-500 mt-1"><%= query.description %></p>
+                  <% end %>
+
+                  <div class="flex items-center text-sm text-gray-500 mt-2">
+                    <span><%= query.execution_summary %></span>
+                    <span class="mx-2">•</span>
+                    <span>Created <%= time_ago_in_words(query.created_at) %> ago</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2 ml-4">
+                  <% if query.can_execute? %>
+                    <%= button_to "Execute", "#", method: :patch,
+                        class: "inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700",
+                        title: "Execute this query to fetch tickets" %>
+                  <% end %>
+
+                  <%= link_to "Edit", edit_session_jql_query_path(@session, query),
+                      class: "inline-flex items-center px-3 py-1 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+
+                  <%= link_to "Delete", session_jql_query_path(@session, query),
+                      method: :delete,
+                      data: { confirm: "Are you sure you want to delete this query?" },
+                      class: "inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200" %>
+                </div>
+              </div>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% else %>
+    <!-- Empty State -->
+    <div class="text-center py-12">
+      <div class="mx-auto h-12 w-12 text-gray-400">
+        <!-- Query icon -->
+        <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      </div>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No JQL queries</h3>
+      <p class="mt-1 text-sm text-gray-500">Get started by creating your first JQL query to fetch tickets from JIRA.</p>
+      <div class="mt-6">
+        <%= link_to "Add JQL Query", new_session_jql_query_path(@session),
+            class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700" %>
+      </div>
+    </div>
+  <% end %>
+</div>
