@@ -9,7 +9,7 @@ class CreateAssignments < ActiveRecord::Migration[8.0]
       t.string :status
       t.text :assignment_message
       t.text :assignment_metadata
-      t.references :created_by_user, null: false, foreign_key: true
+      t.references :created_by_user, null: false, foreign_key: { to_table: :users }
 
       t.timestamps
     end

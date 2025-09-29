@@ -10,7 +10,7 @@ class CreateComplexityAnalyses < ActiveRecord::Migration[8.0]
       t.string :analysis_version
       t.boolean :is_manual_override
       t.text :override_reason
-      t.references :overridden_by_user, null: false, foreign_key: true
+      t.references :overridden_by_user, null: false, foreign_key: { to_table: :users }
 
       t.timestamps
     end

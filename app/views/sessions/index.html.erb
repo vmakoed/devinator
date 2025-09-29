@@ -1,0 +1,71 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Sessions</h1>
+      <p class="mt-2 text-gray-600">Manage your ticket analysis sessions</p>
+    </div>
+    <% if current_user.can_create_new_session? %>
+      <%= link_to "New Session", new_session_path,
+            class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+    <% else %>
+      <span class="bg-gray-300 text-gray-500 font-medium py-2 px-4 rounded-lg cursor-not-allowed">
+        Maximum Sessions Reached
+      </span>
+    <% end %>
+  </div>
+
+  <% if @sessions.any? %>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <% @sessions.each do |session| %>
+        <div class="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-200">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 truncate">
+                <%= link_to session.name, workspace_session_path(session), class: "hover:text-blue-600" %>
+              </h3>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                         <%= session.active? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+                <%= session.status.capitalize %>
+              </span>
+            </div>
+
+            <% if session.description.present? %>
+              <p class="text-sm text-gray-600 mb-4 line-clamp-2"><%= session.description %></p>
+            <% end %>
+
+            <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+              <span>Created <%= session.created_at.strftime("%b %d, %Y") %></span>
+              <span><%= pluralize(session.tickets.count, 'ticket') %></span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <%= link_to "Open Workspace", workspace_session_path(session),
+                    class: "text-blue-600 hover:text-blue-700 font-medium text-sm" %>
+
+              <div class="flex space-x-2">
+                <%= link_to "View", session_path(session),
+                      class: "text-gray-600 hover:text-gray-700 text-sm" %>
+                <%= link_to "Settings", edit_session_path(session),
+                      class: "text-gray-600 hover:text-gray-700 text-sm" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-center py-12">
+      <svg class="mx-auto h-24 w-24 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+      </svg>
+      <h2 class="mt-4 text-lg font-medium text-gray-900">No sessions yet</h2>
+      <p class="mt-2 text-gray-500 max-w-sm mx-auto">
+        Get started by creating your first session to analyze JIRA tickets and manage assignments to Devin.
+      </p>
+      <div class="mt-6">
+        <%= link_to "Create Your First Session", new_session_path,
+              class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+  <% end %>
+</div>

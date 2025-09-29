@@ -23,6 +23,13 @@
   </head>
 
   <body>
-    <%= yield %>
+    <main class="container mx-auto mt-28 px-5 flex">
+      <% flash.each do |type, message| %>
+        <div class="<%= flash_css_class(type) %> mb-4 p-4 rounded-md">
+          <%= message %>
+        </div>
+      <% end %>
+      <%= yield %>
+    </main>
   </body>
 </html>

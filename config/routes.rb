@@ -9,6 +9,19 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  # Session management routes
+  resources :sessions do
+    member do
+      get :workspace
+    end
+
+    # Nested resources for session-specific functionality
+    resources :jql_queries, except: [:show]
+    resources :tickets, only: [:index, :show]
+    resources :recommendations, only: [:index, :show, :update]
+    resources :assignments, only: [:index, :create, :show]
+  end
+
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "sessions#index"
 end

@@ -156,14 +156,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_29_114033) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
-  add_foreign_key "assignments", "created_by_users"
   add_foreign_key "assignments", "sessions"
   add_foreign_key "assignments", "tickets"
+  add_foreign_key "assignments", "users", column: "created_by_user_id"
   add_foreign_key "audit_logs", "sessions"
   add_foreign_key "audit_logs", "users"
-  add_foreign_key "complexity_analyses", "overridden_by_users"
   add_foreign_key "complexity_analyses", "tickets"
-  add_foreign_key "complexity_criteria", "created_by_users"
+  add_foreign_key "complexity_analyses", "users", column: "overridden_by_user_id"
+  add_foreign_key "complexity_criteria", "users", column: "created_by_user_id"
   add_foreign_key "jql_queries", "sessions"
   add_foreign_key "recommendations", "sessions"
   add_foreign_key "recommendations", "tickets"

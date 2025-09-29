@@ -6,7 +6,7 @@ class CreateComplexityCriteria < ActiveRecord::Migration[8.0]
       t.text :criteria_config
       t.decimal :weight
       t.boolean :is_active
-      t.references :created_by_user, null: false, foreign_key: true
+      t.references :created_by_user, null: false, foreign_key: { to_table: :users }
 
       t.timestamps
     end
