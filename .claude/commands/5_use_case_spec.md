@@ -1,1 +1,1 @@
-Create or update use case specification for #$ARGUMENTS in doc/use_cases 
+Create or update use case specification for #$ARGUMENTS in doc/use_cases/
