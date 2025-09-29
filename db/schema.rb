@@ -10,11 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_29_150639) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_29_161200) do
   create_table "missions", force: :cascade do |t|
     t.string "name"
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "jql_query"
   end
 end

@@ -11,9 +11,9 @@ This is a Ruby on Rails application designed to help development teams tackle te
 ## Essential Commands
 
 ### Development
-- **Run application**: `./rails server`
-- **Run tests**: `./rails test`
-- **Generate migration**: `./rails generate migration MigrationName`
+- **Run application**: `bin/dev`
+- **Run tests**: `rails test`
+- **Generate migration**: `rails generate migration MigrationName`
 
 ## Architecture
 

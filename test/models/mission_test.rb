@@ -70,4 +70,78 @@ class MissionTest < ActiveSupport::TestCase
       assert_equal "draft", mission.status
     end
   end
+
+  # Test UC002 Business Rules: BR01, BR02, BR03, BR04
+
+  test "should allow nil jql_query for draft missions" do
+    mission = Mission.new(name: "Test Mission", status: "draft", jql_query: nil)
+    assert mission.valid?
+  end
+
+  test "should require jql_query when status is in_progress" do
+    mission = Mission.new(name: "Test Mission", status: "in_progress", jql_query: nil)
+    assert_not mission.valid?
+    assert_includes mission.errors[:jql_query], "can't be blank"
+  end
+
+  test "should allow empty jql_query for draft missions" do
+    mission = Mission.new(name: "Test Mission", status: "draft", jql_query: "")
+    assert mission.valid?
+  end
+
+  test "should be valid with jql_query for in_progress missions" do
+    mission = Mission.new(
+      name: "Test Mission",
+      status: "in_progress",
+      jql_query: 'project = "TEST" AND issuetype = Bug'
+    )
+    assert mission.valid?
+  end
+
+  test "save_jql_query! should save query and update status to in_progress" do
+    mission = Mission.create!(name: "Test Mission", status: "draft")
+    query = 'project = "TEST" AND issuetype = Bug'
+
+    mission.save_jql_query!(query)
+    mission.reload
+
+    assert_equal query, mission.jql_query
+    assert_equal "in_progress", mission.status
+  end
+
+  test "save_jql_query! should save query and keep status if already in_progress" do
+    mission = Mission.create!(
+      name: "Test Mission",
+      status: "in_progress",
+      jql_query: 'old query'
+    )
+    new_query = 'project = "TEST" AND issuetype = Bug'
+
+    mission.save_jql_query!(new_query)
+    mission.reload
+
+    assert_equal new_query, mission.jql_query
+    assert_equal "in_progress", mission.status
+  end
+
+  test "save_jql_query! should raise error with empty query" do
+    mission = Mission.create!(name: "Test Mission", status: "draft")
+
+    assert_raises(ActiveRecord::RecordInvalid) do
+      mission.save_jql_query!("")
+    end
+  end
+
+  test "in_progress scope should return only in_progress missions" do
+    draft_mission = Mission.create!(name: "Draft Mission", status: "draft")
+    in_progress_mission = Mission.create!(
+      name: "In Progress Mission",
+      status: "in_progress",
+      jql_query: 'project = "TEST"'
+    )
+
+    in_progress_missions = Mission.in_progress
+    assert_includes in_progress_missions, in_progress_mission
+    assert_not_includes in_progress_missions, draft_mission
+  end
 end

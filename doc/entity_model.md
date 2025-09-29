@@ -13,6 +13,7 @@ Represents a workflow session for analyzing and assigning tickets.
 - `id` (String, Primary Key) - Generated unique identifier
 - `name` (String, Not Null) - Auto-generated name in format "Mission - YYYY-MM-DD HH:MM:SS"
 - `status` (String, Not Null) - Current mission status: "draft", "in_progress", "completed"
+- `jql_query` (Text, Nullable) - JQL query used to fetch tickets from JIRA
 - `created_at` (DateTime, Not Null) - Mission creation timestamp
 - `updated_at` (DateTime, Not Null) - Last modification timestamp
 
@@ -24,6 +25,7 @@ erDiagram
         string id PK
         string name
         string status
+        text jql_query
         datetime created_at
         datetime updated_at
     }
@@ -42,3 +44,7 @@ erDiagram
 - Mission names are auto-generated with timestamp: "Mission - YYYY-MM-DD HH:MM:SS"
 - Each mission starts in "draft" status
 - Mission creation timestamp is automatically recorded
+- JQL query cannot be empty when saving
+- Only one JQL query per mission is allowed
+- Mission status changes to "in_progress" when JQL query is saved
+- JQL query can be modified until tickets are fetched
