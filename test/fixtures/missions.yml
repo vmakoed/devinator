@@ -1,0 +1,9 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+draft_mission:
+  name: "Mission - 2025-09-29 14:30:15"
+  status: "draft"
+
+completed_mission:
+  name: "Mission - 2025-09-28 10:15:30"
+  status: "completed"
