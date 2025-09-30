@@ -30,7 +30,7 @@ class JiraService
     query_params = URI.encode_www_form({
       jql: jql_query,
       maxResults: 100,
-      fields: 'key,summary,status,priority,assignee,created,labels,description'
+      fields: 'key,summary,status,priority,assignee,created,labels,description,issuetype,comment,issuelinks'
     })
 
     uri = URI("#{@base_url}/rest/api/3/search/jql?#{query_params}")

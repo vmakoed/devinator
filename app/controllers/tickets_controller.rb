@@ -24,7 +24,7 @@ class TicketsController < ApplicationController
 
   def confirm
     @mission = Mission.find(params[:mission_id])
-    redirect_to mission_analyze_tickets_path(@mission), notice: "Tickets confirmed. Ready for analysis."
+    redirect_to analyze_mission_path(@mission), notice: "Tickets confirmed. Ready for analysis."
   end
 
   private

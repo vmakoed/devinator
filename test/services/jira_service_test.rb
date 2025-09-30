@@ -251,7 +251,7 @@ class JiraServiceTest < ActiveSupport::TestCase
 
     stub = stub_request(:get, "#{@base_url}/rest/api/3/search/jql")
       .with(query: hash_including({
-        "fields" => "key,summary,status,priority,assignee,created,labels,description"
+        "fields" => "key,summary,status,priority,assignee,created,labels,description,issuetype,comment,issuelinks"
       }))
       .to_return(status: 200, body: mock_response.to_json, headers: { "Content-Type" => "application/json" })
 

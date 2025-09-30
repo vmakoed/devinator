@@ -1,5 +1,5 @@
 class MissionsController < ApplicationController
-  before_action :set_mission, only: [:show, :query]
+  before_action :set_mission, only: [:show, :query, :analyze]
 
   def index
     @missions = Mission.order(created_at: :desc)
@@ -39,7 +39,42 @@ class MissionsController < ApplicationController
     end
   end
 
+  def analyze
+    @tickets = @mission.tickets.includes(:mission)
+
+    if @tickets.empty?
+      flash[:alert] = "No tickets to analyze. Please fetch tickets first."
+      redirect_to preview_mission_tickets_path(@mission) and return
+    end
+
+    # Check if already analyzed
+    if @tickets.all?(&:analyzed?)
+      # Already analyzed, just display results
+      calculate_summary_stats
+    else
+      # Perform analysis
+      @tickets.each do |ticket|
+        TicketComplexityAnalyzer.new(ticket).analyze!
+      end
+      @mission.update!(status: "analyzed")
+      calculate_summary_stats
+      flash[:notice] = "#{@tickets.count} tickets analyzed successfully!"
+    end
+  end
+
   private
+
+  def calculate_summary_stats
+    @total_count = @tickets.count
+    @low_count = @tickets.low_complexity.count
+    @medium_count = @tickets.medium_complexity.count
+    @high_count = @tickets.high_complexity.count
+
+    # Count low-complexity bugs by checking raw_data
+    @low_bugs_count = @tickets.low_complexity.count do |ticket|
+      ticket.raw_data&.dig("fields", "issuetype", "name") == "Bug"
+    end
+  end
 
   def set_mission
     @mission = Mission.find(params[:id])

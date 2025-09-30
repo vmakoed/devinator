@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     member do
       get :query
       patch :query
+      get :analyze
     end
 
     resources :tickets, only: [] do
@@ -13,9 +14,6 @@ Rails.application.routes.draw do
         post :confirm
       end
     end
-
-    # Placeholder route for UC004
-    get "analyze_tickets", to: "tickets#analyze", as: :analyze_tickets
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

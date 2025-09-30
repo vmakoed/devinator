@@ -31,6 +31,10 @@ Represents a JIRA ticket fetched for a mission.
 - `assignee` (String, Nullable) - JIRA assignee name/email
 - `labels` (Text, Nullable) - Comma-separated labels
 - `jira_created_at` (DateTime, Nullable) - When ticket was created in JIRA
+- `complexity_score` (Integer, Nullable) - Complexity score 1-10 (UC004)
+- `complexity_category` (String, Nullable) - Complexity category: "low", "medium", "high" (UC004)
+- `complexity_factors` (JSON, Nullable) - Detailed breakdown of complexity scoring factors (UC004)
+- `analyzed_at` (DateTime, Nullable) - When complexity analysis was performed (UC004)
 - `raw_data` (JSON, Nullable) - Full JIRA API response for debugging
 - `created_at` (DateTime, Not Null) - Record creation timestamp
 - `updated_at` (DateTime, Not Null) - Last modification timestamp
@@ -61,6 +65,10 @@ erDiagram
         string assignee
         text labels
         datetime jira_created_at
+        integer complexity_score
+        string complexity_category
+        json complexity_factors
+        datetime analyzed_at
         json raw_data
         datetime created_at
         datetime updated_at
@@ -73,6 +81,11 @@ erDiagram
 - `draft` - Mission created but not yet started
 - `in_progress` - Mission is being worked on
 - `completed` - Mission workflow finished
+
+### Ticket Complexity Category (UC004)
+- `low` - Complexity score 1-3, suitable for AI assignment
+- `medium` - Complexity score 4-7, moderate difficulty
+- `high` - Complexity score 8-10, high difficulty
 
 ## Business Rules
 
@@ -93,3 +106,14 @@ erDiagram
 - Tickets are stored with the mission for future analysis
 - Ticket data is cached to avoid repeated JIRA API calls
 - `raw_data` stores the complete JIRA API response for debugging and audit purposes
+
+### Complexity Analysis Rules (UC004)
+- Complexity score range is 1-10 (clamped after calculation)
+- Complexity categories: low (1-3), medium (4-7), high (8-10)
+- Only tickets with type "Bug" are considered for AI assignment
+- Complexity analysis is deterministic (same ticket = same score)
+- Analysis results are cached to avoid re-computation
+- `complexity_factors` JSON stores detailed breakdown of scoring factors
+- `analyzed_at` timestamp tracks when analysis was performed
+- Complexity scores cannot be manually overridden by users
+- Tickets require minimum description to be analyzable

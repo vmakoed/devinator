@@ -194,9 +194,9 @@ class TicketsControllerTest < ActionDispatch::IntegrationTest
     # Now confirm
     post confirm_mission_tickets_path(@mission)
 
-    assert_redirected_to mission_analyze_tickets_path(@mission)
+    assert_redirected_to analyze_mission_path(@mission)
     follow_redirect!
-    assert_equal "Tickets confirmed. Ready for analysis.", flash[:notice]
+    assert_equal "1 tickets analyzed successfully!", flash[:notice]
   end
 
   # UC003 BR03: Tickets are stored with the mission for future analysis

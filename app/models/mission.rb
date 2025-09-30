@@ -7,6 +7,7 @@ class Mission < ApplicationRecord
 
   scope :draft, -> { where(status: 'draft') }
   scope :in_progress, -> { where(status: 'in_progress') }
+  scope :analyzed, -> { where(status: 'analyzed') }
 
   def self.generate_name
     "Mission - #{Time.current.strftime('%Y-%m-%d %H:%M:%S')}"

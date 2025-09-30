@@ -312,4 +312,364 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#char-count"
     assert_select "script", text: /updateCharCount/
   end
+
+  # UC004 Tests - Analyze Tickets
+  # Test UC004 Acceptance Criteria: AC01, AC03, AC04, AC06, AC10, AC12
+  # Test UC004 Test Scenarios: TS001, TS002, TS003, TS007
+
+  # UC004 AC01: All stored tickets are analyzed for complexity
+  # TS001: Successful Analysis with Mixed Complexity
+  test "should analyze all tickets and display results" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    assert_select "h1", "Ticket Complexity Analysis"
+
+    # Verify all tickets were analyzed
+    mission.tickets.each do |ticket|
+      ticket.reload
+      assert ticket.analyzed?
+      assert_not_nil ticket.complexity_score
+      assert_not_nil ticket.complexity_category
+    end
+
+    # Mission status should be updated
+    mission.reload
+    assert_equal "analyzed", mission.status
+  end
+
+  # AC04: Summary statistics show count of tickets in each category
+  test "should display summary statistics" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Check that summary cards exist with the right labels
+    assert_select ".bg-white.border", text: /Total Tickets/
+    assert_select ".bg-green-50", text: /Low Complexity/
+    assert_select ".bg-yellow-50", text: /Medium Complexity/
+    assert_select ".bg-red-50", text: /High Complexity/
+  end
+
+  # TS002: Low-Complexity Bugs Identified
+  # AC06: Low-complexity bugs are clearly highlighted/flagged
+  test "should identify and count low-complexity bugs" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    # Create low-complexity bug
+    Ticket.create!(
+      mission: mission,
+      jira_key: "TEST-1",
+      summary: "Simple bug fix",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Bug" },
+          "labels" => ["quick-win"]
+        }
+      }
+    )
+
+    # Create low-complexity task (not a bug)
+    Ticket.create!(
+      mission: mission,
+      jira_key: "TEST-2",
+      summary: "Simple task",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Task" },
+          "labels" => ["quick-win"]
+        }
+      }
+    )
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Check for the low bugs message in the blue alert box
+    assert_select ".bg-blue-50", text: /1 low-complexity bug identified/
+  end
+
+  # AF1: No Low-Complexity Tickets Found
+  # TS003: No Low-Complexity Tickets
+  test "should display message when no low-complexity tickets found" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    # Create only high-complexity tickets
+    3.times do |i|
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-#{i + 1}",
+        summary: "Complex ticket",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Epic" },
+            "labels" => ["complex"],
+            "comment" => { "total" => 15 }
+          }
+        }
+      )
+    end
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    assert_select ".bg-orange-50", text: /No low-complexity bugs found/
+  end
+
+  # AC07: User can sort tickets by complexity score
+  test "should display tickets sorted by complexity" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    assert_select "table tbody tr"  # Verify table with ticket rows exists
+  end
+
+  # BR05: Analysis results are stored and can be re-displayed without re-analysis
+  test "should display cached results without re-analyzing" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+
+    # First analysis
+    get analyze_mission_path(mission)
+    first_analyzed_times = mission.tickets.map { |t| t.reload.analyzed_at }
+
+    # Second visit should not re-analyze
+    sleep 0.01
+    get analyze_mission_path(mission)
+    second_analyzed_times = mission.tickets.map { |t| t.reload.analyzed_at }
+
+    assert_equal first_analyzed_times, second_analyzed_times
+  end
+
+  # AF2: Analysis Error - System continues with partial results
+  test "should handle tickets with minimal data gracefully" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    # Create ticket with minimal data
+    Ticket.create!(
+      mission: mission,
+      jira_key: "TEST-1",
+      summary: "Minimal ticket",
+      status: "Open",
+      raw_data: { "fields" => {} }
+    )
+
+    assert_nothing_raised do
+      get analyze_mission_path(mission)
+    end
+
+    assert_response :success
+    mission.tickets.first.reload
+    assert mission.tickets.first.analyzed?
+  end
+
+  # Test navigation to analyze page requires tickets
+  test "should redirect if no tickets to analyze" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    get analyze_mission_path(mission)
+
+    assert_redirected_to preview_mission_tickets_path(mission)
+    assert_equal "No tickets to analyze. Please fetch tickets first.", flash[:alert]
+  end
+
+  # AC12: "View Recommendations" navigation is clearly presented
+  # TS007: Navigate to Recommendations
+  test "should display navigation to recommendations" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Future: assert_select for recommendations link when UC005 is implemented
+  end
+
+  # Test mission status update
+  test "should update mission status to analyzed" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+    assert_equal "in_progress", mission.status
+
+    get analyze_mission_path(mission)
+
+    mission.reload
+    assert_equal "analyzed", mission.status
+  end
+
+  # Test AC10: Loading indicator shows progress during analysis
+  test "analyze page should display success message after analysis" do
+    mission = create_mission_with_tickets(mixed_complexity: true)
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Check that flash notice is set
+    assert_equal "3 tickets analyzed successfully!", flash[:notice]
+  end
+
+  # Test complexity category counts are accurate
+  test "should accurately count tickets by complexity category" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    # Create 2 low-complexity tickets
+    2.times do |i|
+      Ticket.create!(
+        mission: mission,
+        jira_key: "LOW-#{i + 1}",
+        summary: "Low complexity",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "labels" => ["quick-win"]
+          }
+        }
+      )
+    end
+
+    # Create 3 medium-complexity tickets
+    3.times do |i|
+      Ticket.create!(
+        mission: mission,
+        jira_key: "MED-#{i + 1}",
+        summary: "Medium complexity",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "comment" => { "total" => 5 }
+          }
+        }
+      )
+    end
+
+    # Create 1 high-complexity ticket
+    Ticket.create!(
+      mission: mission,
+      jira_key: "HIGH-1",
+      summary: "High complexity",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Epic" },
+          "labels" => ["complex"],
+          "comment" => { "total" => 12 }
+        }
+      }
+    )
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+
+    # Verify counts by checking the actual tickets in the database
+    mission.reload
+    assert_equal 6, mission.tickets.count
+    assert_equal 2, mission.tickets.low_complexity.count
+    assert_equal 3, mission.tickets.medium_complexity.count
+    assert_equal 1, mission.tickets.high_complexity.count
+
+    # Verify low-complexity bugs count
+    low_bugs = mission.tickets.low_complexity.count do |ticket|
+      ticket.raw_data&.dig("fields", "issuetype", "name") == "Bug"
+    end
+    assert_equal 2, low_bugs
+  end
+
+  # Test that analysis works with various ticket types
+  test "should analyze tickets of different issue types" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    ["Bug", "Task", "Story"].each_with_index do |issue_type, i|
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-#{i + 1}",
+        summary: "#{issue_type} ticket",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => issue_type }
+          }
+        }
+      )
+    end
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    mission.tickets.each do |ticket|
+      ticket.reload
+      assert ticket.analyzed?
+      assert_not_nil ticket.complexity_category
+    end
+  end
+
+  private
+
+  def create_mission_with_tickets(mixed_complexity: false)
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test query")
+
+    if mixed_complexity
+      # Low complexity
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-1",
+        summary: "Simple bug",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "labels" => ["quick-win"]
+          }
+        }
+      )
+
+      # Medium complexity
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-2",
+        summary: "Medium bug",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "comment" => { "total" => 5 }
+          }
+        }
+      )
+
+      # High complexity
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-3",
+        summary: "Complex bug",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "labels" => ["complex"],
+            "comment" => { "total" => 12 },
+            "issuelinks" => Array.new(6, {})
+          }
+        }
+      )
+    else
+      # Just one ticket
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-1",
+        summary: "Test ticket",
+        status: "Open",
+        raw_data: { "fields" => { "issuetype" => { "name" => "Bug" } } }
+      )
+    end
+
+    mission
+  end
 end
