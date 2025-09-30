@@ -12,8 +12,12 @@ Represents a workflow session for analyzing and assigning tickets.
 **Attributes:**
 - `id` (String, Primary Key) - Generated unique identifier
 - `name` (String, Not Null) - Auto-generated name in format "Mission - YYYY-MM-DD HH:MM:SS"
-- `status` (String, Not Null) - Current mission status: "draft", "in_progress", "completed"
+- `status` (String, Not Null) - Current mission status: "draft", "in_progress", "assigned", "completed"
 - `jql_query` (Text, Nullable) - JQL query used to fetch tickets from JIRA
+- `assigned_at` (DateTime, Nullable) - When tickets were assigned to Devin (UC006)
+- `assignment_completed_at` (DateTime, Nullable) - When all assignment operations completed (UC006)
+- `total_assigned_count` (Integer, Not Null, Default: 0) - Count of successfully assigned tickets (UC006)
+- `failed_assignment_count` (Integer, Not Null, Default: 0) - Count of failed assignments (UC006)
 - `created_at` (DateTime, Not Null) - Mission creation timestamp
 - `updated_at` (DateTime, Not Null) - Last modification timestamp
 
@@ -37,6 +41,12 @@ Represents a JIRA ticket fetched for a mission.
 - `analyzed_at` (DateTime, Nullable) - When complexity analysis was performed (UC004)
 - `selected_for_assignment` (Boolean, Not Null, Default: false) - Whether ticket is selected for AI assignment (UC005)
 - `selected_at` (DateTime, Nullable) - When ticket was selected for assignment (UC005)
+- `devin_session_id` (String, Nullable) - Devin session identifier (UC006)
+- `devin_session_url` (String, Nullable) - URL to Devin session (UC006)
+- `assigned_to_devin_at` (DateTime, Nullable) - When ticket was assigned to Devin (UC006)
+- `assignment_status` (String, Not Null, Default: "pending") - Assignment status: "pending", "assigned", "failed", "timeout" (UC006)
+- `assignment_error` (Text, Nullable) - Error message if assignment failed (UC006)
+- `assignment_retry_count` (Integer, Not Null, Default: 0) - Number of retry attempts for assignment (UC006)
 - `raw_data` (JSON, Nullable) - Full JIRA API response for debugging
 - `created_at` (DateTime, Not Null) - Record creation timestamp
 - `updated_at` (DateTime, Not Null) - Last modification timestamp
@@ -52,6 +62,10 @@ erDiagram
         string name
         string status
         text jql_query
+        datetime assigned_at
+        datetime assignment_completed_at
+        integer total_assigned_count
+        integer failed_assignment_count
         datetime created_at
         datetime updated_at
     }
@@ -73,6 +87,12 @@ erDiagram
         datetime analyzed_at
         boolean selected_for_assignment
         datetime selected_at
+        string devin_session_id
+        string devin_session_url
+        datetime assigned_to_devin_at
+        string assignment_status
+        text assignment_error
+        integer assignment_retry_count
         json raw_data
         datetime created_at
         datetime updated_at
@@ -84,12 +104,19 @@ erDiagram
 ### Mission Status
 - `draft` - Mission created but not yet started
 - `in_progress` - Mission is being worked on
+- `assigned` - Tickets have been assigned to Devin (UC006)
 - `completed` - Mission workflow finished
 
 ### Ticket Complexity Category (UC004)
 - `low` - Complexity score 1-3, suitable for AI assignment
 - `medium` - Complexity score 4-7, moderate difficulty
 - `high` - Complexity score 8-10, high difficulty
+
+### Ticket Assignment Status (UC006)
+- `pending` - Ticket not yet assigned to Devin (default)
+- `assigned` - Ticket successfully assigned to Devin
+- `failed` - Assignment to Devin failed
+- `timeout` - Assignment to Devin timed out
 
 ## Business Rules
 
@@ -133,3 +160,21 @@ erDiagram
 - Selection is persisted atomically when user proceeds to next step
 - `selected_at` timestamp records when ticket was last selected
 - Deselecting a ticket sets `selected_for_assignment=false` and `selected_at=null`
+
+### Ticket Assignment Rules (UC006)
+- Only tickets with `selected_for_assignment=true` are assigned to Devin
+- Each ticket gets a unique Devin session
+- Assignment is performed sequentially with progress tracking
+- Failed assignments do not block successful ones
+- Devin session URL must be stored for user access
+- Mission status changes to "assigned" only after at least one successful assignment
+- Original JIRA ticket ID and key are included in Devin session request
+- Ticket title, description, and relevant metadata are sent to Devin
+- Maximum 100 tickets can be assigned in one operation
+- Assignment timeout is 30 seconds per ticket
+- Failed assignments can be retried individually
+- `assignment_retry_count` tracks the number of retry attempts
+- Assignment is idempotent (safe to retry)
+- `assignment_status` is updated for each assignment attempt
+- `assigned_to_devin_at` timestamp records successful assignment
+- Mission `total_assigned_count` and `failed_assignment_count` are updated after each assignment batch

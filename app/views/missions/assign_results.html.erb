@@ -1,0 +1,178 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Breadcrumb -->
+  <nav class="text-sm breadcrumbs mb-6">
+    <ol class="list-none p-0 inline-flex">
+      <li class="flex items-center">
+        <%= link_to "Missions", root_path, class: "text-blue-600 hover:text-blue-800" %>
+        <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+          <path d="m285.476 272.971-134.95 134.95c-15.621 15.621-40.947 15.621-56.569 0l-135.83-135.83c-15.621-15.621-15.621-40.947 0-56.569l135.83-135.83c15.621-15.621 40.947-15.621 56.569 0l134.95 134.95c15.621 15.621 15.621 40.947 0 56.569z"/>
+        </svg>
+      </li>
+      <li class="text-gray-500">Assignment Complete</li>
+    </ol>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="mb-8">
+    <% if @assignment_results[:failed].empty? && @assignment_results[:timeout].empty? %>
+      <h1 class="text-3xl font-bold text-green-900 mb-2">Assignment Complete!</h1>
+      <p class="text-gray-600">Successfully assigned <%= @assignment_results[:success].count %> <%= 'ticket'.pluralize(@assignment_results[:success].count) %> to Devin</p>
+    <% else %>
+      <h1 class="text-3xl font-bold text-orange-900 mb-2">Assignment Partially Complete</h1>
+      <p class="text-gray-600">
+        <%= @assignment_results[:success].count %> <%= 'ticket'.pluralize(@assignment_results[:success].count) %> assigned successfully,
+        <%= (@assignment_results[:failed].count + @assignment_results[:timeout].count) %> failed
+      </p>
+    <% end %>
+  </div>
+
+  <!-- Success Summary -->
+  <% if @assignment_results[:success].any? %>
+    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+      <div class="flex items-center">
+        <svg class="h-8 w-8 text-green-400 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="text-lg font-semibold text-green-900">
+            Successfully assigned <%= @assignment_results[:success].count %> <%= 'ticket'.pluralize(@assignment_results[:success].count) %> to Devin
+          </h3>
+          <div class="text-sm text-green-700 mt-1">
+            <%= Time.current.strftime("%B %d, %Y at %I:%M %p") %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Successfully Assigned Tickets -->
+  <% if @assignment_results[:success].any? %>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Assigned Tickets</h2>
+      </div>
+      <div class="divide-y divide-gray-200">
+        <% @assignment_results[:success].each do |ticket| %>
+          <div class="px-6 py-4 hover:bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="flex items-center">
+                  <svg class="h-5 w-5 text-green-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm font-medium text-blue-600 mr-3"><%= ticket.jira_key %></span>
+                  <span class="text-sm text-gray-900"><%= ticket.summary %></span>
+                </div>
+                <div class="flex items-center mt-2 space-x-3 ml-7">
+                  <% if ticket.low_complexity? %>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      Low Complexity
+                    </span>
+                  <% elsif ticket.medium_complexity? %>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Medium Complexity
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                      High Complexity
+                    </span>
+                  <% end %>
+                  <span class="text-xs text-gray-500">Score: <%= ticket.complexity_score %></span>
+                  <% if ticket.devin_session_url.present? %>
+                    <%= link_to "View Devin Session →", ticket.devin_session_url, target: "_blank", class: "text-xs text-blue-600 hover:text-blue-800 font-medium" %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Failed Assignments -->
+  <% if @assignment_results[:failed].any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
+      <div class="flex items-center mb-4">
+        <svg class="h-8 w-8 text-red-400 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="text-lg font-semibold text-red-900">
+            <%= @assignment_results[:failed].count %> <%= 'ticket'.pluralize(@assignment_results[:failed].count) %> failed to assign
+          </h3>
+          <div class="text-sm text-red-700 mt-1">
+            Review the errors below and retry if needed
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <% @assignment_results[:failed].each do |item| %>
+          <div class="bg-white border border-red-200 rounded p-3">
+            <div class="flex items-start">
+              <svg class="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+              <div class="flex-1">
+                <div class="text-sm font-medium text-gray-900">
+                  <%= item[:ticket].jira_key %>: <%= item[:ticket].summary %>
+                </div>
+                <div class="text-xs text-red-600 mt-1">
+                  Error: <%= item[:error] %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Timeout Assignments -->
+  <% if @assignment_results[:timeout].any? %>
+    <div class="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-4">
+      <div class="flex items-center mb-4">
+        <svg class="h-8 w-8 text-orange-400 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="text-lg font-semibold text-orange-900">
+            <%= @assignment_results[:timeout].count %> <%= 'ticket'.pluralize(@assignment_results[:timeout].count) %> timed out
+          </h3>
+          <div class="text-sm text-orange-700 mt-1">
+            These assignments exceeded the timeout limit
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <% @assignment_results[:timeout].each do |item| %>
+          <div class="bg-white border border-orange-200 rounded p-3">
+            <div class="flex items-start">
+              <svg class="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+              <div class="flex-1">
+                <div class="text-sm font-medium text-gray-900">
+                  <%= item[:ticket].jira_key %>: <%= item[:ticket].summary %>
+                </div>
+                <div class="text-xs text-orange-600 mt-1">
+                  <%= item[:error] %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Action Buttons -->
+  <div class="flex justify-between items-center">
+    <%= link_to "Start New Mission", root_path, class: "px-6 py-3 bg-blue-600 text-white rounded-md text-base font-medium hover:bg-blue-700" %>
+    <% if @assignment_results[:failed].any? || @assignment_results[:timeout].any? %>
+      <%= link_to "Retry Failed Assignments", assign_mission_path(@mission), class: "px-4 py-2 border border-orange-300 bg-orange-50 rounded-md text-sm font-medium text-orange-700 hover:bg-orange-100" %>
+    <% end %>
+  </div>
+</div>

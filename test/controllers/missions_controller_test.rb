@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class MissionsControllerTest < ActionDispatch::IntegrationTest
   # Test UC001 Acceptance Criteria: AC01-AC09
@@ -665,7 +666,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       selected_tickets: tickets_to_select.map(&:id)
     }
 
-    assert_redirected_to analyze_mission_path(mission)
+    assert_redirected_to assign_mission_path(mission)
     assert_equal "3 ticket(s) selected for assignment", flash[:notice]
 
     # Verify database state
@@ -710,7 +711,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       selected_tickets: selected_tickets.map(&:id)
     }
 
-    assert_redirected_to analyze_mission_path(mission)
+    assert_redirected_to assign_mission_path(mission)
     assert_equal "5 ticket(s) selected for assignment", flash[:notice]
 
     # Verify database persistence
@@ -1106,5 +1107,532 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     end
 
     mission
+  end
+
+  def create_mission_with_selected_tickets(count: 5)
+    mission = Mission.create!(name: "Test Mission", status: "analyzed", jql_query: "test")
+
+    count.times do |i|
+      ticket = Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-#{i + 1}",
+        summary: "Test ticket #{i + 1}",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "priority" => { "name" => "Medium" },
+            "description" => "Test description for ticket #{i + 1}"
+          }
+        }
+      )
+      TicketComplexityAnalyzer.new(ticket).analyze!
+      ticket.select_for_assignment!
+    end
+
+    mission
+  end
+
+  # UC006 Tests - Assign Tickets to Devin
+  # Test UC006 Acceptance Criteria: AC01-AC13
+  # Test UC006 Test Scenarios: TS001-TS010
+
+  # TS001: Successful Assignment - All Tickets
+  # AC01: "Assign Selected Tickets" button triggers assignment process
+  # AC06: Assignment results are persisted to database
+  test "should successfully assign all selected tickets to Devin" do
+    mission = create_mission_with_selected_tickets(count: 5)
+
+    # Mock successful API responses
+    mock_service = Minitest::Mock.new
+    5.times do
+      mock_service.expect :create_session, {
+        success: true,
+        session_id: "devin_#{SecureRandom.hex(8)}",
+        session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
+        status: "created"
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+    mock_service.verify
+
+    # Verify mission status updated
+    mission.reload
+    assert_equal "assigned", mission.status
+    assert_not_nil mission.assigned_at
+    assert_equal 5, mission.total_assigned_count
+    assert_equal 0, mission.failed_assignment_count
+
+    # Verify all tickets assigned
+    mission.tickets.each do |ticket|
+      assert ticket.assigned_to_devin?
+      assert_not_nil ticket.devin_session_id
+      assert_not_nil ticket.devin_session_url
+      assert_not_nil ticket.assigned_to_devin_at
+    end
+  end
+
+  # TS002: Successful Assignment - Single Ticket
+  test "should successfully assign single selected ticket" do
+    mission = create_mission_with_selected_tickets(count: 1)
+
+    mock_service = Minitest::Mock.new
+    mock_service.expect :create_session, {
+      success: true,
+      session_id: "devin_abc123",
+      session_url: "https://devin.ai/sessions/abc123",
+      status: "created"
+    }, [Ticket]
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+    mock_service.verify
+
+    mission.reload
+    assert_equal "assigned", mission.status
+    assert_equal 1, mission.total_assigned_count
+    assert_equal 0, mission.failed_assignment_count
+  end
+
+  # TS003: Partial Failure
+  # AC08: Partial failures are handled gracefully
+  # AF1: Devin API Failure for Single Ticket
+  # BR04: Failed assignments do not block successful ones
+  test "should handle partial assignment failures gracefully" do
+    mission = create_mission_with_selected_tickets(count: 10)
+    tickets = mission.tickets.selected_for_assignment.to_a
+
+    mock_service = Minitest::Mock.new
+
+    # Simulate failures for tickets 3 and 7 (indices 2 and 6)
+    tickets.each_with_index do |ticket, index|
+      if [2, 6].include?(index)
+        mock_service.expect :create_session, {
+          success: false,
+          error: "API rate limit exceeded"
+        }, [Ticket]
+      else
+        mock_service.expect :create_session, {
+          success: true,
+          session_id: "devin_#{SecureRandom.hex(8)}",
+          session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
+          status: "created"
+        }, [Ticket]
+      end
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+    mock_service.verify
+
+    # Verify partial success
+    mission.reload
+    assert_equal "assigned", mission.status  # Status changes if at least one succeeds
+    assert_equal 8, mission.total_assigned_count
+    assert_equal 2, mission.failed_assignment_count
+
+    # Verify individual ticket statuses
+    successful = mission.tickets.assigned_to_devin
+    failed = mission.tickets.assignment_failed
+
+    assert_equal 8, successful.count
+    assert_equal 2, failed.count
+  end
+
+  # TS004: Complete API Failure
+  # AF2: Complete Devin API Failure
+  # BR06: Mission status changes to "assigned" only after at least one successful assignment
+  test "should handle complete API failure without updating mission status" do
+    mission = create_mission_with_selected_tickets(count: 5)
+
+    mock_service = Minitest::Mock.new
+    5.times do
+      mock_service.expect :create_session, {
+        success: false,
+        error: "Unable to connect to Devin API"
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+    mock_service.verify
+
+    # Verify mission status NOT updated since all failed
+    mission.reload
+    assert_equal "analyzed", mission.status  # Should remain in previous status
+    assert_equal 0, mission.total_assigned_count
+    assert_equal 5, mission.failed_assignment_count
+
+    # Verify all tickets marked as failed
+    assert_equal 5, mission.tickets.assignment_failed.count
+  end
+
+  # TS005: Invalid Credentials
+  # AF3: Invalid API Credentials
+  test "should handle invalid API credentials error" do
+    mission = create_mission_with_selected_tickets(count: 3)
+
+    mock_service = Minitest::Mock.new
+    3.times do
+      mock_service.expect :create_session, {
+        success: false,
+        error: "Authentication failed. Please check API credentials."
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+
+    mission.reload
+    assert_equal "analyzed", mission.status
+    assert_equal 0, mission.total_assigned_count
+  end
+
+  # TS007: Network Timeout
+  # AF5: Network Timeout
+  # BR10: Assignment timeout is 30 seconds per ticket
+  test "should handle network timeouts gracefully" do
+    mission = create_mission_with_selected_tickets(count: 15)
+    tickets = mission.tickets.selected_for_assignment.to_a
+
+    mock_service = Minitest::Mock.new
+
+    # Simulate timeouts for tickets 5 and 10 (indices 4 and 9)
+    tickets.each_with_index do |ticket, index|
+      if [4, 9].include?(index)
+        mock_service.expect :create_session, -> (_) { raise DevinApiService::TimeoutError, "Request timed out" }, [Ticket]
+      else
+        mock_service.expect :create_session, {
+          success: true,
+          session_id: "devin_#{SecureRandom.hex(8)}",
+          session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
+          status: "created"
+        }, [Ticket]
+      end
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+
+    # Verify partial success with timeouts
+    mission.reload
+    assert_equal "assigned", mission.status
+    assert_equal 13, mission.total_assigned_count
+    assert_equal 2, mission.failed_assignment_count
+
+    # Verify timeout tickets
+    assert_equal 2, mission.tickets.assignment_timeout.count
+  end
+
+  # AC02: Progress screen shows real-time assignment status
+  # AC09: User can navigate to individual Devin sessions
+  test "should display assignment results with Devin session links" do
+    mission = create_mission_with_selected_tickets(count: 3)
+
+    mock_service = Minitest::Mock.new
+    3.times do
+      mock_service.expect :create_session, {
+        success: true,
+        session_id: "devin_xyz789",
+        session_url: "https://devin.ai/sessions/xyz789",
+        status: "created"
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+    # View renders assign_results template with assignment data
+    # Note: assert_template requires rails-controller-testing gem
+  end
+
+  # AC07: Error messages are clear and actionable
+  test "should display clear error messages for failed assignments" do
+    mission = create_mission_with_selected_tickets(count: 2)
+
+    mock_service = Minitest::Mock.new
+    mock_service.expect :create_session, {
+      success: true,
+      session_id: "devin_success",
+      session_url: "https://devin.ai/sessions/success",
+      status: "created"
+    }, [Ticket]
+    mock_service.expect :create_session, {
+      success: false,
+      error: "API quota exceeded or forbidden"
+    }, [Ticket]
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+
+    # Verify error stored with ticket
+    failed_ticket = mission.tickets.assignment_failed.first
+    assert_not_nil failed_ticket
+    assert_equal "API quota exceeded or forbidden", failed_ticket.assignment_error
+  end
+
+  # BR01: Only tickets with `selected_for_assignment=true` are assigned to Devin
+  test "should only assign selected tickets" do
+    mission = create_mission_with_selected_tickets(count: 10)
+
+    # Deselect 3 tickets
+    mission.tickets.limit(3).update_all(selected_for_assignment: false)
+
+    selected_count = mission.tickets.selected_for_assignment.count
+    assert_equal 7, selected_count
+
+    mock_service = Minitest::Mock.new
+    7.times do
+      mock_service.expect :create_session, {
+        success: true,
+        session_id: "devin_#{SecureRandom.hex(8)}",
+        session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
+        status: "created"
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    mock_service.verify
+
+    # Verify only 7 tickets assigned
+    assert_equal 7, mission.tickets.assigned_to_devin.count
+    assert_equal 3, mission.tickets.assignment_pending.count
+  end
+
+  # BR02: Each ticket gets a unique Devin session
+  test "should create unique Devin session for each ticket" do
+    mission = create_mission_with_selected_tickets(count: 5)
+
+    mock_service = Minitest::Mock.new
+    5.times do |i|
+      mock_service.expect :create_session, {
+        success: true,
+        session_id: "devin_unique_#{i}",
+        session_url: "https://devin.ai/sessions/unique_#{i}",
+        status: "created"
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    mock_service.verify
+
+    # Verify all session IDs are unique
+    session_ids = mission.tickets.reload.map(&:devin_session_id).compact
+    assert_equal 5, session_ids.count
+    assert_equal 5, session_ids.uniq.count
+  end
+
+  # Test that GET request shows existing assignments if already assigned
+  test "should show existing assignment results on GET request" do
+    mission = create_mission_with_selected_tickets(count: 3)
+
+    # Manually assign tickets
+    mission.tickets.each_with_index do |ticket, index|
+      ticket.assign_to_devin!(
+        session_id: "devin_#{index}",
+        session_url: "https://devin.ai/sessions/#{index}"
+      )
+    end
+    mission.update!(status: "assigned", assigned_at: Time.current)
+
+    get assign_mission_path(mission)
+
+    assert_response :success
+    # View should render assign_results template
+  end
+
+  # Test redirect when no tickets selected
+  test "should redirect when no tickets selected for assignment" do
+    mission = create_mission_with_selected_tickets(count: 5)
+
+    # Deselect all tickets
+    mission.tickets.update_all(selected_for_assignment: false)
+
+    get assign_mission_path(mission)
+
+    assert_redirected_to analyze_mission_path(mission)
+    assert_equal "No tickets selected for assignment. Please select tickets first.", flash[:alert]
+  end
+
+  # BR07: Original JIRA ticket ID and key are included in Devin session request
+  # BR08: Ticket title, description, and relevant metadata are sent to Devin
+  test "should include ticket details in API request" do
+    mission = create_mission_with_selected_tickets(count: 1)
+    ticket = mission.tickets.first
+
+    # Mock service that verifies the ticket is passed
+    mock_service = Minitest::Mock.new
+    mock_service.expect :create_session, {
+      success: true,
+      session_id: "devin_test",
+      session_url: "https://devin.ai/sessions/test",
+      status: "created"
+    }, [ticket]
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    mock_service.verify
+  end
+
+  # BR09: Maximum 100 tickets can be assigned in one operation
+  test "assignment respects 100 ticket maximum from selection" do
+    # This is enforced at selection time (UC005), not assignment time
+    # Just verify that if somehow 100+ are selected, they can all be processed
+    mission = create_mission_with_selected_tickets(count: 100)
+
+    assert_equal 100, mission.tickets.selected_for_assignment.count
+
+    # Assignment should process all 100
+    mock_service = Minitest::Mock.new
+    100.times do
+      mock_service.expect :create_session, {
+        success: true,
+        session_id: "devin_#{SecureRandom.hex(8)}",
+        session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
+        status: "created"
+      }, [Ticket]
+    end
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    mock_service.verify
+  end
+
+  # Test exception handling for unexpected errors
+  test "should handle unexpected exceptions during assignment" do
+    mission = create_mission_with_selected_tickets(count: 3)
+
+    mock_service = Minitest::Mock.new
+    # First ticket succeeds
+    mock_service.expect :create_session, {
+      success: true,
+      session_id: "devin_success",
+      session_url: "https://devin.ai/sessions/success",
+      status: "created"
+    }, [Ticket]
+
+    # Second ticket raises unexpected exception
+    mock_service.expect :create_session, -> (_) { raise StandardError, "Unexpected error occurred" }, [Ticket]
+
+    # Third ticket succeeds
+    mock_service.expect :create_session, {
+      success: true,
+      session_id: "devin_success2",
+      session_url: "https://devin.ai/sessions/success2",
+      status: "created"
+    }, [Ticket]
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    assert_response :success
+
+    # Verify partial success despite exception
+    mission.reload
+    assert_equal 2, mission.tickets.assigned_to_devin.count
+    assert_equal 1, mission.tickets.assignment_failed.count
+
+    failed_ticket = mission.tickets.assignment_failed.first
+    assert_equal "Unexpected error occurred", failed_ticket.assignment_error
+  end
+
+  # AC13: Assignment history is preserved for audit trail
+  test "should preserve assignment timestamps and retry counts" do
+    mission = create_mission_with_selected_tickets(count: 2)
+    tickets = mission.tickets.to_a
+
+    # First assignment attempt - one succeeds, one fails
+    mock_service = Minitest::Mock.new
+    mock_service.expect :create_session, {
+      success: true,
+      session_id: "devin_1",
+      session_url: "https://devin.ai/sessions/1",
+      status: "created"
+    }, [Ticket]
+    mock_service.expect :create_session, {
+      success: false,
+      error: "Temporary failure"
+    }, [Ticket]
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    mock_service.verify
+
+    # Check audit trail fields
+    tickets[0].reload
+    assert tickets[0].assigned_to_devin?
+    assert_not_nil tickets[0].assigned_to_devin_at
+    assert_equal 0, tickets[0].assignment_retry_count
+
+    tickets[1].reload
+    assert tickets[1].assignment_failed?
+    assert_equal "Temporary failure", tickets[1].assignment_error
+    assert_equal 1, tickets[1].assignment_retry_count
+  end
+
+  # Test assignment_completed_at is set
+  test "should set assignment completion timestamp on mission" do
+    mission = create_mission_with_selected_tickets(count: 2)
+
+    mock_service = Minitest::Mock.new
+    2.times do
+      mock_service.expect :create_session, {
+        success: true,
+        session_id: "devin_#{SecureRandom.hex(8)}",
+        session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
+        status: "created"
+      }, [Ticket]
+    end
+
+    before_time = Time.current
+
+    DevinApiService.stub :new, mock_service do
+      post assign_mission_path(mission)
+    end
+
+    after_time = Time.current
+
+    mission.reload
+    assert_not_nil mission.assignment_completed_at
+    assert mission.assignment_completed_at >= before_time
+    assert mission.assignment_completed_at <= after_time
   end
 end

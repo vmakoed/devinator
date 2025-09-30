@@ -1,5 +1,5 @@
 class MissionsController < ApplicationController
-  before_action :set_mission, only: [:show, :query, :analyze, :save_selection]
+  before_action :set_mission, only: [:show, :query, :analyze, :save_selection, :assign]
 
   def index
     @missions = Mission.order(created_at: :desc)
@@ -103,13 +103,83 @@ class MissionsController < ApplicationController
     respond_to do |format|
       format.html do
         flash[:notice] = "#{selected_ticket_ids.length} ticket(s) selected for assignment"
-        redirect_to analyze_mission_path(@mission) # Stay on analyze page for now, will be UC006 when implemented
+        redirect_to assign_mission_path(@mission)
       end
       format.json { render json: { success: true, count: selected_ticket_ids.length } }
     end
   end
 
+  def assign
+    @selected_tickets = @mission.tickets.selected_for_assignment.includes(:mission)
+
+    if @selected_tickets.empty?
+      flash[:alert] = "No tickets selected for assignment. Please select tickets first."
+      redirect_to analyze_mission_path(@mission) and return
+    end
+
+    # Check if tickets are already assigned
+    if @mission.status == "assigned" && @selected_tickets.all?(&:assigned_to_devin?)
+      # Show results of existing assignments
+      @assignment_results = {
+        success: @selected_tickets.select(&:assigned_to_devin?),
+        failed: @mission.tickets.assignment_failed.map { |t| { ticket: t, error: t.assignment_error } },
+        timeout: @mission.tickets.assignment_timeout.map { |t| { ticket: t, error: "Request timed out" } }
+      }
+      render :assign_results and return
+    end
+
+    if request.post?
+      handle_assignment
+    end
+  end
+
   private
+
+  def handle_assignment
+    results = {
+      success: [],
+      failed: [],
+      timeout: []
+    }
+
+    @selected_tickets.each do |ticket|
+      begin
+        result = DevinApiService.new.create_session(ticket)
+
+        if result[:success]
+          ticket.assign_to_devin!(
+            session_id: result[:session_id],
+            session_url: result[:session_url]
+          )
+          results[:success] << ticket
+        else
+          ticket.mark_assignment_failed!(result[:error])
+          results[:failed] << { ticket: ticket, error: result[:error] }
+        end
+      rescue DevinApiService::TimeoutError => e
+        ticket.mark_assignment_timeout!
+        results[:timeout] << { ticket: ticket, error: e.message }
+      rescue => e
+        Rails.logger.error "Assignment failed for ticket #{ticket.jira_key}: #{e.message}"
+        ticket.mark_assignment_failed!(e.message)
+        results[:failed] << { ticket: ticket, error: e.message }
+      end
+    end
+
+    # Update mission stats
+    @mission.update_assignment_stats!(
+      total_assigned: results[:success].count,
+      failed_count: results[:failed].count + results[:timeout].count
+    )
+
+    # Change mission status to assigned if at least one ticket was successfully assigned
+    if results[:success].any?
+      @mission.update!(status: "assigned", assigned_at: Time.current)
+    end
+
+    @assignment_results = results
+    render :assign_results
+  end
 
   def calculate_summary_stats
     @total_count = @tickets.count

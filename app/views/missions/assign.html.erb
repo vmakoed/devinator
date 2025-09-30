@@ -1,0 +1,125 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Breadcrumb -->
+  <nav class="text-sm breadcrumbs mb-6">
+    <ol class="list-none p-0 inline-flex">
+      <li class="flex items-center">
+        <%= link_to "Missions", root_path, class: "text-blue-600 hover:text-blue-800" %>
+        <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+          <path d="m285.476 272.971-134.95 134.95c-15.621 15.621-40.947 15.621-56.569 0l-135.83-135.83c-15.621-15.621-15.621-40.947 0-56.569l135.83-135.83c15.621-15.621 40.947-15.621 56.569 0l134.95 134.95c15.621 15.621 15.621 40.947 0 56.569z"/>
+        </svg>
+      </li>
+      <li class="flex items-center">
+        <%= link_to "Input JQL Query", query_mission_path(@mission), class: "text-blue-600 hover:text-blue-800" %>
+        <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+          <path d="m285.476 272.971-134.95 134.95c-15.621 15.621-40.947 15.621-56.569 0l-135.83-135.83c-15.621-15.621-15.621-40.947 0-56.569l135.83-135.83c15.621-15.621 40.947-15.621 56.569 0l134.95 134.95c15.621 15.621 15.621 40.947 0 56.569z"/>
+        </svg>
+      </li>
+      <li class="flex items-center">
+        <%= link_to "Preview Tickets", preview_mission_tickets_path(@mission), class: "text-blue-600 hover:text-blue-800" %>
+        <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+          <path d="m285.476 272.971-134.95 134.95c-15.621 15.621-40.947 15.621-56.569 0l-135.83-135.83c-15.621-15.621-15.621-40.947 0-56.569l135.83-135.83c15.621-15.621 40.947-15.621 56.569 0l134.95 134.95c15.621 15.621 15.621 40.947 0 56.569z"/>
+        </svg>
+      </li>
+      <li class="flex items-center">
+        <%= link_to "Analyze Tickets", analyze_mission_path(@mission), class: "text-blue-600 hover:text-blue-800" %>
+        <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+          <path d="m285.476 272.971-134.95 134.95c-15.621 15.621-40.947 15.621-56.569 0l-135.83-135.83c-15.621-15.621-15.621-40.947 0-56.569l135.83-135.83c15.621-15.621 40.947-15.621 56.569 0l134.95 134.95c15.621 15.621 15.621 40.947 0 56.569z"/>
+        </svg>
+      </li>
+      <li class="text-gray-500">Assign to Devin</li>
+    </ol>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Assign Tickets to Devin</h1>
+    <p class="text-gray-600">Review and confirm assignment of <%= @selected_tickets.count %> <%= 'ticket'.pluralize(@selected_tickets.count) %> to Devin for automated resolution</p>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center">
+        <svg class="h-8 w-8 text-blue-400 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="text-lg font-semibold text-blue-900">
+            <%= @selected_tickets.count %> <%= 'ticket'.pluralize(@selected_tickets.count) %> ready for assignment
+          </h3>
+          <div class="text-sm text-blue-700 mt-1">
+            These tickets will be automatically assigned to Devin for resolution
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selected Tickets List -->
+  <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8">
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900">Selected Tickets</h2>
+    </div>
+    <div class="divide-y divide-gray-200">
+      <% @selected_tickets.each do |ticket| %>
+        <div class="px-6 py-4 hover:bg-gray-50">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="flex items-center">
+                <span class="text-sm font-medium text-blue-600 mr-3"><%= ticket.jira_key %></span>
+                <span class="text-sm text-gray-900"><%= ticket.summary %></span>
+              </div>
+              <div class="flex items-center mt-2 space-x-3">
+                <% if ticket.low_complexity? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    Low Complexity
+                  </span>
+                <% elsif ticket.medium_complexity? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Medium Complexity
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    High Complexity
+                  </span>
+                <% end %>
+                <span class="text-xs text-gray-500">Score: <%= ticket.complexity_score %></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Warning about API configuration -->
+  <% if ENV["DEVIN_API_KEY"].blank? %>
+    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-orange-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-orange-800">
+            Devin API not configured
+          </h3>
+          <div class="mt-2 text-sm text-orange-700">
+            Warning: DEVIN_API_KEY environment variable is not set. Assignment will fail until API credentials are configured.
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Action Buttons -->
+  <%= form_with url: assign_mission_path(@mission), method: :post, data: { turbo: false } do |f| %>
+    <div class="flex justify-between items-center">
+      <%= link_to "Back to Analysis", analyze_mission_path(@mission), class: "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+      <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-md text-base font-medium hover:bg-blue-700">
+        Assign <%= @selected_tickets.count %> <%= 'Ticket'.pluralize(@selected_tickets.count) %> to Devin
+      </button>
+    </div>
+  <% end %>
+</div>

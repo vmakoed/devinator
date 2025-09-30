@@ -42,8 +42,8 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
    - Issue type (bug vs. task vs. story)
 5. System assigns complexity score (1-10) to each ticket
 6. System categorizes tickets:
-   - Low complexity: score 1-3
-   - Medium complexity: score 4-7
+   - Low complexity: score 1-4
+   - Medium complexity: score 5-7
    - High complexity: score 8-10
 7. System displays analysis results in organized view:
    - Summary statistics (count by complexity category)
@@ -88,7 +88,7 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
 ## Business Rules
 
 - BR01: Only tickets with type "Bug" are considered for AI assignment
-- BR02: Low-complexity threshold is score 1-3
+- BR02: Low-complexity threshold is score 1-4
 - BR03: Complexity score is based on objective factors, not subjective assessment
 - BR04: Tickets must have minimum information to be analyzable (description required)
 - BR05: Analysis results are stored and can be re-displayed without re-analysis
@@ -169,7 +169,7 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
 ### TS004: Filter by Complexity Category
 **Given:** Analysis results are displayed
 **When:** User filters by "Low Complexity"
-**Then:** Only tickets with score 1-3 are shown in list
+**Then:** Only tickets with score 1-4 are shown in list
 
 ### TS005: Sort by Complexity Score
 **Given:** Analysis results are displayed
@@ -237,4 +237,4 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
 - Base score: 3 (medium)
 - Apply all factor adjustments
 - Clamp final score to 1-10 range
-- Complexity category: 1-3 = low, 4-7 = medium, 8-10 = high
+- Complexity category: 1-4 = low, 5-7 = medium, 8-10 = high

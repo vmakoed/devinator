@@ -72,13 +72,15 @@ graph TB
 
 **UC005: Confirm Selection**
 - Actor: Development Team Lead
-- Description: Review and confirm final ticket selection for assignment
+- Description: Review final ticket selection and confirm to proceed with assignment
 - Priority: High
+- UI Flow: User sees confirmed selection screen with selected tickets list and "Assign to Devin" button
 
 **UC006: Assign to Devin**
 - Actor: Development Team Lead
-- Description: Assign selected tickets to Devin (AI engineer) for resolution
+- Description: Initiate assignment of selected tickets to Devin (AI engineer) and view results
 - Priority: High
+- UI Flow: After pressing assign button, user sees success screen with confirmation message and links to created Devin sessions next to corresponding tickets
 
 ## MVP Happy Flow Sequence
 
