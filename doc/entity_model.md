@@ -35,6 +35,8 @@ Represents a JIRA ticket fetched for a mission.
 - `complexity_category` (String, Nullable) - Complexity category: "low", "medium", "high" (UC004)
 - `complexity_factors` (JSON, Nullable) - Detailed breakdown of complexity scoring factors (UC004)
 - `analyzed_at` (DateTime, Nullable) - When complexity analysis was performed (UC004)
+- `selected_for_assignment` (Boolean, Not Null, Default: false) - Whether ticket is selected for AI assignment (UC005)
+- `selected_at` (DateTime, Nullable) - When ticket was selected for assignment (UC005)
 - `raw_data` (JSON, Nullable) - Full JIRA API response for debugging
 - `created_at` (DateTime, Not Null) - Record creation timestamp
 - `updated_at` (DateTime, Not Null) - Last modification timestamp
@@ -69,6 +71,8 @@ erDiagram
         string complexity_category
         json complexity_factors
         datetime analyzed_at
+        boolean selected_for_assignment
+        datetime selected_at
         json raw_data
         datetime created_at
         datetime updated_at
@@ -117,3 +121,15 @@ erDiagram
 - `analyzed_at` timestamp tracks when analysis was performed
 - Complexity scores cannot be manually overridden by users
 - Tickets require minimum description to be analyzable
+
+### Ticket Selection Rules (UC005)
+- Tickets default to `selected_for_assignment=false` when created
+- On first visit to selection step (no existing selections in mission), all low-complexity bugs are automatically preselected
+- If mission has any tickets with `selected_for_assignment=true`, existing selection is preserved (no auto-preselection)
+- Users can manually select/deselect any tickets regardless of complexity
+- At least one ticket must be selected to proceed to assignment
+- Maximum of 100 tickets can be selected for assignment in one batch (hard limit)
+- Warning displayed when more than 50 tickets selected
+- Selection is persisted atomically when user proceeds to next step
+- `selected_at` timestamp records when ticket was last selected
+- Deselecting a ticket sets `selected_for_assignment=false` and `selected_at=null`

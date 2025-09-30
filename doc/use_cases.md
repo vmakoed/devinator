@@ -11,9 +11,8 @@ graph TB
     UC002[UC002: Input JQL Query<br/>Enter JQL query to fetch bug tickets from JIRA]
     UC003[UC003: Preview Tickets<br/>Preview and confirm fetched JIRA tickets]
     UC004[UC004: Analyze Complexity<br/>System analyzes and scores ticket complexity]
-    UC005[UC005: Review Recommendations<br/>Review ticket recommendations]
-    UC006[UC006: Confirm Selection<br/>Review and confirm final ticket selection]
-    UC007[UC007: Assign to Devin<br/>Assign selected tickets to AI engineer]
+    UC005[UC005: Confirm Selection<br/>Review and confirm final ticket selection]
+    UC006[UC006: Assign to Devin<br/>Assign selected tickets to AI engineer]
 
     %% External Systems
     JIRA[(JIRA API)]
@@ -25,13 +24,12 @@ graph TB
     User --> UC003
     User --> UC005
     User --> UC006
-    User --> UC007
 
     %% System interactions
     UC002 --> JIRA
     UC003 --> JIRA
     UC004 --> UC004
-    UC007 --> Devin
+    UC006 --> Devin
 
     %% Sequential workflow
     UC001 -.-> UC002
@@ -39,13 +37,12 @@ graph TB
     UC003 -.-> UC004
     UC004 -.-> UC005
     UC005 -.-> UC006
-    UC006 -.-> UC007
 
     %% Styling
     classDef mvpCore fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef external fill:#e9ecef,stroke:#868e96,color:#000
 
-    class UC001,UC002,UC003,UC004,UC005,UC006,UC007 mvpCore
+    class UC001,UC002,UC003,UC004,UC005,UC006 mvpCore
     class JIRA,Devin external
 ```
 
@@ -73,17 +70,12 @@ graph TB
 - Description: Automatically analyze and score ticket complexity using heuristics
 - Priority: High
 
-**UC005: Review Recommendations**
-- Actor: Development Team Lead
-- Description: Review recommendations of suitable tickets
-- Priority: High
-
-**UC006: Confirm Selection**
+**UC005: Confirm Selection**
 - Actor: Development Team Lead
 - Description: Review and confirm final ticket selection for assignment
 - Priority: High
 
-**UC007: Assign to Devin**
+**UC006: Assign to Devin**
 - Actor: Development Team Lead
 - Description: Assign selected tickets to Devin (AI engineer) for resolution
 - Priority: High
@@ -96,8 +88,7 @@ The complete MVP workflow follows this linear sequence:
 2. **UC002** (Input JQL Query) →
 3. **UC003** (Preview Tickets) →
 4. **UC004** (Analyze Complexity) →
-5. **UC005** (Review Recommendations) →
-6. **UC006** (Confirm Selection) →
-7. **UC007** (Assign to Devin)
+5. **UC005** (Confirm Selection) →
+6. **UC006** (Assign to Devin)
 
 This represents the essential end-to-end workflow with no optional features or alternative paths.

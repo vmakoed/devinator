@@ -49,10 +49,13 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
    - Summary statistics (count by complexity category)
    - Sortable/filterable ticket list with complexity indicators
    - Visual breakdown (chart/graph of complexity distribution)
+   - Checkboxes next to each ticket for selection (UC005)
 8. System highlights low-complexity bugs suitable for AI assignment
-9. User reviews analysis results
-10. User clicks "View Recommendations" button
-11. System navigates to Ticket Recommendations page (UC005)
+9. System automatically preselects low-complexity bugs with checkboxes (UC005)
+10. User reviews analysis results and selection
+11. User can adjust ticket selection as needed (see UC005 for selection details)
+12. User clicks "Assign Selected Tickets" button
+13. System proceeds to UC006 (Assign Tickets to AI)
 
 ## Alternative Flows
 
@@ -104,7 +107,9 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
 - AC09: Complexity factors are visible for each ticket (on hover or expand)
 - AC10: Loading indicator shows progress during analysis
 - AC11: System handles tickets with missing data gracefully
-- AC12: "View Recommendations" navigation is clearly presented
+- AC12: "Assign Selected Tickets" button is clearly presented
+- AC13: Checkboxes for ticket selection are integrated into the page (see UC005)
+- AC14: Low-complexity tickets are automatically preselected on first visit
 
 ## UI/UX Requirements
 
@@ -121,7 +126,11 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
   - Filter controls (by complexity category, issue type)
   - Expandable row to show complexity factors
 - Special highlight/badge for low-complexity bugs suitable for AI
-- Clear "View Recommendations" button to proceed to UC005
+- Integrated ticket selection controls (see UC005 for details):
+  - Checkboxes for each ticket
+  - Selection controls (Select All, Deselect All, Select Low-Complexity Only)
+  - Selection count display
+- Clear "Assign Selected Tickets" button to proceed to UC006
 - Breadcrumb navigation showing current step in workflow
 - Option to return to previous step if needed
 
@@ -172,10 +181,10 @@ As a development team lead, I want to analyze the complexity of fetched JIRA tic
 **When:** User expands a ticket row
 **Then:** Detailed complexity factors and their contributions are shown
 
-### TS007: Navigate to Recommendations
-**Given:** User has reviewed analysis results
-**When:** User clicks "View Recommendations"
-**Then:** System navigates to UC005 (Ticket Recommendations)
+### TS007: Navigate to Assignment with Selection
+**Given:** User has reviewed analysis results and adjusted selection
+**When:** User clicks "Assign Selected Tickets"
+**Then:** System saves selection and proceeds to UC006 (Assign Tickets to AI)
 
 ## Notes
 

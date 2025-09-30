@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_30_095319) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_30_124532) do
   create_table "missions", force: :cascade do |t|
     t.string "name"
     t.string "status"
@@ -36,6 +36,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_30_095319) do
     t.string "complexity_category"
     t.json "complexity_factors"
     t.datetime "analyzed_at"
+    t.boolean "selected_for_assignment", default: false, null: false
+    t.datetime "selected_at"
     t.index ["mission_id", "jira_key"], name: "index_tickets_on_mission_id_and_jira_key", unique: true
     t.index ["mission_id"], name: "index_tickets_on_mission_id"
   end

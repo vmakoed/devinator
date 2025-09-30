@@ -1,5 +1,5 @@
 class MissionsController < ApplicationController
-  before_action :set_mission, only: [:show, :query, :analyze]
+  before_action :set_mission, only: [:show, :query, :analyze, :save_selection]
 
   def index
     @missions = Mission.order(created_at: :desc)
@@ -51,6 +51,8 @@ class MissionsController < ApplicationController
     if @tickets.all?(&:analyzed?)
       # Already analyzed, just display results
       calculate_summary_stats
+      calculate_selection_stats
+      @apply_preselection = should_apply_preselection?
     else
       # Perform analysis
       @tickets.each do |ticket|
@@ -58,7 +60,52 @@ class MissionsController < ApplicationController
       end
       @mission.update!(status: "analyzed")
       calculate_summary_stats
+      calculate_selection_stats
+      @apply_preselection = should_apply_preselection?
       flash[:notice] = "#{@tickets.count} tickets analyzed successfully!"
+    end
+  end
+
+  def save_selection
+    selected_ticket_ids = params[:selected_tickets] || []
+
+    if selected_ticket_ids.empty?
+      respond_to do |format|
+        format.html do
+          flash[:alert] = "Please select at least one ticket to assign"
+          redirect_to analyze_mission_path(@mission)
+        end
+        format.json { render json: { error: "Please select at least one ticket to assign" }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    if selected_ticket_ids.length > 100
+      respond_to do |format|
+        format.html do
+          flash[:alert] = "Cannot select more than 100 tickets at once"
+          redirect_to analyze_mission_path(@mission)
+        end
+        format.json { render json: { error: "Cannot select more than 100 tickets at once" }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    # Update all tickets in a transaction
+    ActiveRecord::Base.transaction do
+      @mission.tickets.update_all(selected_for_assignment: false, selected_at: nil)
+      @mission.tickets.where(id: selected_ticket_ids).update_all(
+        selected_for_assignment: true,
+        selected_at: Time.current
+      )
+    end
+
+    respond_to do |format|
+      format.html do
+        flash[:notice] = "#{selected_ticket_ids.length} ticket(s) selected for assignment"
+        redirect_to analyze_mission_path(@mission) # Stay on analyze page for now, will be UC006 when implemented
+      end
+      format.json { render json: { success: true, count: selected_ticket_ids.length } }
     end
   end
 
@@ -74,6 +121,18 @@ class MissionsController < ApplicationController
     @low_bugs_count = @tickets.low_complexity.count do |ticket|
       ticket.raw_data&.dig("fields", "issuetype", "name") == "Bug"
     end
+  end
+
+  def calculate_selection_stats
+    @selected_count = @tickets.selected_for_assignment.count
+    @selected_low_count = @tickets.selected_for_assignment.low_complexity.count
+    @selected_medium_count = @tickets.selected_for_assignment.medium_complexity.count
+    @selected_high_count = @tickets.selected_for_assignment.high_complexity.count
+  end
+
+  def should_apply_preselection?
+    # Only apply automatic preselection if no tickets have been selected yet
+    @mission.tickets.selected_for_assignment.none?
   end
 
   def set_mission

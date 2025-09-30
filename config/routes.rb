@@ -6,6 +6,7 @@ Rails.application.routes.draw do
       get :query
       patch :query
       get :analyze
+      post :save_selection
     end
 
     resources :tickets, only: [] do

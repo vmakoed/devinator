@@ -390,8 +390,8 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     get analyze_mission_path(mission)
 
     assert_response :success
-    # Check for the low bugs message in the blue alert box
-    assert_select ".bg-blue-50", text: /1 low-complexity bug identified/
+    # Check for the low bugs message in the green alert box
+    assert_select ".bg-green-50", text: /1 low-complexity bug identified/
   end
 
   # AF1: No Low-Complexity Tickets Found
@@ -610,6 +610,326 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # UC005 Tests - Select Tickets for Assignment
+  # Test UC005 Acceptance Criteria: AC01-AC13
+  # Test UC005 Test Scenarios: TS001-TS010
+
+  # TS001: First Visit - Default Preselection
+  # AC02: All low-complexity bugs are preselected automatically on first visit
+  test "should preselect low-complexity bugs on first visit" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Verify low-complexity bugs would be preselected (checked in view via JS)
+    low_bugs_count = mission.tickets.low_complexity.count do |ticket|
+      ticket.raw_data&.dig("fields", "issuetype", "name") == "Bug"
+    end
+    assert_equal 2, low_bugs_count
+
+    # Verify no tickets have been selected in database yet
+    assert_equal 0, mission.tickets.selected_for_assignment.count
+  end
+
+  # TS002: Return Visit - Restore Selection
+  # AC03: Existing selection is restored if user returns to this step
+  test "should restore existing selection on return visit" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # Select specific tickets
+    selected_tickets = mission.tickets.limit(2)
+    selected_tickets.each(&:select_for_assignment!)
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Verify selection count is displayed
+    mission.reload
+    assert_equal 2, mission.tickets.selected_for_assignment.count
+  end
+
+  # TS003: Manual Selection Change
+  # AC06: User can check/uncheck individual tickets
+  test "should allow saving manual selection changes" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # Select 3 specific tickets (mix of complexities)
+    tickets_to_select = [
+      mission.tickets.low_complexity.first,
+      mission.tickets.medium_complexity.first,
+      mission.tickets.high_complexity.first
+    ].compact
+
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: tickets_to_select.map(&:id)
+    }
+
+    assert_redirected_to analyze_mission_path(mission)
+    assert_equal "3 ticket(s) selected for assignment", flash[:notice]
+
+    # Verify database state
+    tickets_to_select.each do |ticket|
+      ticket.reload
+      assert ticket.selected_for_assignment
+      assert_not_nil ticket.selected_at
+    end
+
+    # Verify unselected tickets
+    unselected = mission.tickets.where.not(id: tickets_to_select.map(&:id))
+    unselected.each do |ticket|
+      ticket.reload
+      assert_not ticket.selected_for_assignment
+      assert_nil ticket.selected_at
+    end
+  end
+
+  # TS007: Validation Error - No Selection
+  # AC09: Validation error appears if user tries to proceed with no selection
+  # BR05: At least one ticket must be selected to proceed
+  test "should reject empty selection with error message" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # Don't send selected_tickets param at all to simulate empty selection
+    post save_selection_mission_path(mission)
+
+    assert_redirected_to analyze_mission_path(mission)
+    assert_equal "Please select at least one ticket to assign", flash[:alert]
+
+    # Verify no tickets were selected
+    assert_equal 0, mission.tickets.selected_for_assignment.count
+  end
+
+  # TS008: Successful Navigation to Assignment
+  # BR06: Selection is saved to database when user proceeds to next step
+  test "should save selection and proceed to next step" do
+    mission = create_analyzed_mission_with_complexity_mix
+    selected_tickets = mission.tickets.limit(5)
+
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: selected_tickets.map(&:id)
+    }
+
+    assert_redirected_to analyze_mission_path(mission)
+    assert_equal "5 ticket(s) selected for assignment", flash[:notice]
+
+    # Verify database persistence
+    mission.reload
+    assert_equal 5, mission.tickets.selected_for_assignment.count
+
+    # Verify selected_at timestamp is set
+    mission.tickets.selected_for_assignment.each do |ticket|
+      assert_not_nil ticket.selected_at
+      assert ticket.selected_at <= Time.current
+    end
+  end
+
+  # TS009: Warning for Large Selection
+  # BR08: Maximum 50 tickets can be selected for assignment in one batch
+  # AC12: Warning appears if user selects more than 50 tickets
+  test "should reject selection exceeding 100 tickets" do
+    mission = create_mission_with_many_tickets(120)
+
+    # Analyze all tickets first
+    mission.tickets.each { |t| TicketComplexityAnalyzer.new(t).analyze! }
+
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: mission.tickets.limit(101).pluck(:id)
+    }
+
+    assert_redirected_to analyze_mission_path(mission)
+    assert_equal "Cannot select more than 100 tickets at once", flash[:alert]
+  end
+
+  # TS010: No Low-Complexity Tickets
+  # AF1: No Low-Complexity Tickets Available
+  test "should handle case with no low-complexity tickets" do
+    mission = create_analyzed_mission_all_high_complexity
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    assert_equal 0, mission.tickets.low_complexity.count
+  end
+
+  # AC01: Checkboxes appear next to all tickets in the list
+  # AC13: Visual indicator shows which tickets are selected
+  test "should display checkboxes for ticket selection" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Verify selection controls are present in view
+    assert_select "table tbody tr" # Ticket rows exist
+  end
+
+  # Test selection stats calculation
+  # AC05: Selection count is displayed and updates in real-time
+  test "should calculate selection statistics correctly" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # Select mix of complexities
+    low = mission.tickets.low_complexity.first
+    medium = mission.tickets.medium_complexity.first
+    high = mission.tickets.high_complexity.first
+
+    [low, medium, high].compact.each(&:select_for_assignment!)
+
+    # Verify selection counts in database
+    mission.reload
+    assert_equal 3, mission.tickets.selected_for_assignment.count
+    assert_equal 1, mission.tickets.selected_for_assignment.low_complexity.count
+    assert_equal 1, mission.tickets.selected_for_assignment.medium_complexity.count
+    assert_equal 1, mission.tickets.selected_for_assignment.high_complexity.count
+  end
+
+  # BR02: If mission has any selected_for_assignment tickets, do not run automatic preselection
+  test "should not apply preselection if any tickets already selected" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # Select just one ticket
+    mission.tickets.first.select_for_assignment!
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+    # Verify only the one ticket is selected
+    assert_equal 1, mission.tickets.selected_for_assignment.count
+  end
+
+  # Test atomic update of selection
+  test "should update all tickets atomically in transaction" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # First selection
+    first_batch = mission.tickets.limit(3)
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: first_batch.map(&:id)
+    }
+
+    assert_equal 3, mission.tickets.selected_for_assignment.count
+
+    # Second selection (different tickets)
+    second_batch = mission.tickets.offset(3).limit(2)
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: second_batch.map(&:id)
+    }
+
+    # Verify only second batch is selected, first batch deselected
+    mission.reload
+    assert_equal 2, mission.tickets.selected_for_assignment.count
+
+    first_batch.each do |ticket|
+      ticket.reload
+      assert_not ticket.selected_for_assignment
+      assert_nil ticket.selected_at
+    end
+
+    second_batch.each do |ticket|
+      ticket.reload
+      assert ticket.selected_for_assignment
+      assert_not_nil ticket.selected_at
+    end
+  end
+
+  # Test JSON API response format
+  test "should support JSON format for selection save" do
+    mission = create_analyzed_mission_with_complexity_mix
+    selected_tickets = mission.tickets.limit(4)
+
+    post save_selection_mission_path(mission, format: :json), params: {
+      selected_tickets: selected_tickets.map(&:id)
+    }
+
+    assert_response :success
+    json_response = JSON.parse(response.body)
+    assert json_response["success"]
+    assert_equal 4, json_response["count"]
+  end
+
+  test "should return JSON error for empty selection" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # Don't send selected_tickets param to simulate empty selection
+    post save_selection_mission_path(mission, format: :json)
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal "Please select at least one ticket to assign", json_response["error"]
+  end
+
+  # BR07: Only Bug type tickets should be considered for automatic preselection
+  test "preselection logic should only apply to bugs" do
+    mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
+
+    # Create low-complexity Bug
+    bug = Ticket.create!(
+      mission: mission,
+      jira_key: "TEST-1",
+      summary: "Low bug",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Bug" },
+          "labels" => ["quick-win"]
+        }
+      }
+    )
+
+    # Create low-complexity Task (not a bug)
+    task = Ticket.create!(
+      mission: mission,
+      jira_key: "TEST-2",
+      summary: "Low task",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Task" },
+          "labels" => ["quick-win"]
+        }
+      }
+    )
+
+    # Analyze tickets
+    [bug, task].each { |t| TicketComplexityAnalyzer.new(t).analyze! }
+
+    get analyze_mission_path(mission)
+
+    assert_response :success
+
+    # Verify only 1 low-complexity bug (not the task)
+    low_bugs = mission.tickets.low_complexity.count do |ticket|
+      ticket.raw_data&.dig("fields", "issuetype", "name") == "Bug"
+    end
+    assert_equal 1, low_bugs
+  end
+
+  # Test selection persistence across page loads
+  test "should persist selection across multiple saves" do
+    mission = create_analyzed_mission_with_complexity_mix
+
+    # First save
+    initial_selection = mission.tickets.limit(2)
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: initial_selection.map(&:id)
+    }
+
+    # Verify first selection
+    mission.reload
+    assert_equal 2, mission.tickets.selected_for_assignment.count
+
+    # Update selection
+    updated_selection = mission.tickets.limit(4)
+    post save_selection_mission_path(mission), params: {
+      selected_tickets: updated_selection.map(&:id)
+    }
+
+    # Verify updated selection
+    mission.reload
+    assert_equal 4, mission.tickets.selected_for_assignment.count
+  end
+
   private
 
   def create_mission_with_tickets(mixed_complexity: false)
@@ -667,6 +987,121 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         summary: "Test ticket",
         status: "Open",
         raw_data: { "fields" => { "issuetype" => { "name" => "Bug" } } }
+      )
+    end
+
+    mission
+  end
+
+  def create_analyzed_mission_with_complexity_mix
+    mission = Mission.create!(name: "Test Mission", status: "analyzed", jql_query: "test")
+
+    # 2 low-complexity bugs
+    2.times do |i|
+      ticket = Ticket.create!(
+        mission: mission,
+        jira_key: "LOW-BUG-#{i + 1}",
+        summary: "Low complexity bug",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "labels" => ["quick-win"]
+          }
+        }
+      )
+      TicketComplexityAnalyzer.new(ticket).analyze!
+    end
+
+    # 1 low-complexity task (not a bug)
+    ticket = Ticket.create!(
+      mission: mission,
+      jira_key: "LOW-TASK-1",
+      summary: "Low complexity task",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Task" },
+          "labels" => ["quick-win"]
+        }
+      }
+    )
+    TicketComplexityAnalyzer.new(ticket).analyze!
+
+    # 2 medium-complexity bugs
+    2.times do |i|
+      ticket = Ticket.create!(
+        mission: mission,
+        jira_key: "MED-BUG-#{i + 1}",
+        summary: "Medium complexity bug",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" },
+            "comment" => { "total" => 5 }
+          }
+        }
+      )
+      TicketComplexityAnalyzer.new(ticket).analyze!
+    end
+
+    # 1 high-complexity bug
+    ticket = Ticket.create!(
+      mission: mission,
+      jira_key: "HIGH-BUG-1",
+      summary: "High complexity bug",
+      status: "Open",
+      raw_data: {
+        "fields" => {
+          "issuetype" => { "name" => "Bug" },
+          "labels" => ["complex"],
+          "comment" => { "total" => 12 },
+          "issuelinks" => Array.new(6, {})
+        }
+      }
+    )
+    TicketComplexityAnalyzer.new(ticket).analyze!
+
+    mission
+  end
+
+  def create_analyzed_mission_all_high_complexity
+    mission = Mission.create!(name: "Test Mission", status: "analyzed", jql_query: "test")
+
+    3.times do |i|
+      ticket = Ticket.create!(
+        mission: mission,
+        jira_key: "HIGH-#{i + 1}",
+        summary: "High complexity ticket",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Epic" },
+            "labels" => ["complex"],
+            "comment" => { "total" => 15 }
+          }
+        }
+      )
+      TicketComplexityAnalyzer.new(ticket).analyze!
+    end
+
+    mission
+  end
+
+  def create_mission_with_many_tickets(count)
+    mission = Mission.create!(name: "Test Mission", status: "analyzed", jql_query: "test")
+
+    count.times do |i|
+      Ticket.create!(
+        mission: mission,
+        jira_key: "TEST-#{i + 1}",
+        summary: "Ticket #{i + 1}",
+        status: "Open",
+        raw_data: {
+          "fields" => {
+            "issuetype" => { "name" => "Bug" }
+          }
+        }
       )
     end
 

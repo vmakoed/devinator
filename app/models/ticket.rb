@@ -15,6 +15,8 @@ class Ticket < ApplicationRecord
   scope :high_complexity, -> { where(complexity_category: "high") }
   scope :analyzed, -> { where.not(analyzed_at: nil) }
   scope :not_analyzed, -> { where(analyzed_at: nil) }
+  scope :selected_for_assignment, -> { where(selected_for_assignment: true) }
+  scope :not_selected, -> { where(selected_for_assignment: false) }
 
   def analyzed?
     analyzed_at.present?
@@ -30,6 +32,18 @@ class Ticket < ApplicationRecord
 
   def high_complexity?
     complexity_category == "high"
+  end
+
+  def selected?
+    selected_for_assignment
+  end
+
+  def select_for_assignment!
+    update!(selected_for_assignment: true, selected_at: Time.current)
+  end
+
+  def deselect_for_assignment!
+    update!(selected_for_assignment: false, selected_at: nil)
   end
 
   private
