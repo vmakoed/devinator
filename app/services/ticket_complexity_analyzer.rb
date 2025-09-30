@@ -134,7 +134,7 @@ class TicketComplexityAnalyzer
   end
 
   def determine_category(score)
-    return "low" if score <= 3
+    return "low" if score <= 4
     return "medium" if score <= 7
     "high"
   end

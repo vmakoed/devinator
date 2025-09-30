@@ -11,7 +11,7 @@ graph TB
     UC002[UC002: Input JQL Query<br/>Enter JQL query to fetch bug tickets from JIRA]
     UC003[UC003: Preview Tickets<br/>Preview and confirm fetched JIRA tickets]
     UC004[UC004: Analyze Complexity<br/>System analyzes and scores ticket complexity]
-    UC005[UC005: Review Recommendations<br/>Review AI-generated ticket recommendations]
+    UC005[UC005: Review Recommendations<br/>Review ticket recommendations]
     UC006[UC006: Confirm Selection<br/>Review and confirm final ticket selection]
     UC007[UC007: Assign to Devin<br/>Assign selected tickets to AI engineer]
 
@@ -75,7 +75,7 @@ graph TB
 
 **UC005: Review Recommendations**
 - Actor: Development Team Lead
-- Description: Review AI-generated recommendations of suitable tickets
+- Description: Review recommendations of suitable tickets
 - Priority: High
 
 **UC006: Confirm Selection**

@@ -18,7 +18,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
 
     ticket.reload
     assert_equal 3, ticket.complexity_score  # base(3) + adequate_desc(0)
-    assert_equal "low", ticket.complexity_category  # score 1-3 is low complexity
+    assert_equal "low", ticket.complexity_category  # score 1-4 is low complexity
     assert ticket.analyzed?
   end
 
@@ -316,8 +316,8 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
   end
 
   # AC03: Tickets are categorized into low/medium/high complexity groups
-  # BR02: Low-complexity threshold is score 1-3
-  test "should categorize score 1-3 as low complexity" do
+  # BR02: Low-complexity threshold is score 1-4
+  test "should categorize score 1-4 as low complexity" do
     ticket = create_ticket_with_labels(["quick-win"])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
@@ -328,13 +328,13 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
     assert ticket.low_complexity?
   end
 
-  test "should categorize score 4-7 as medium complexity" do
-    ticket = create_ticket_with_comments(5)
+  test "should categorize score 5-7 as medium complexity" do
+    ticket = create_ticket_with_comments(8)  # 6-10 comments = +2, so base(3) + comments(2) = 5
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
     ticket.reload
-    assert_equal 4, ticket.complexity_score
+    assert_equal 5, ticket.complexity_score
     assert_equal "medium", ticket.complexity_category
     assert ticket.medium_complexity?
   end
