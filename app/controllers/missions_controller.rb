@@ -6,7 +6,13 @@ class MissionsController < ApplicationController
   end
 
   def show
-    # Mission details page
+    # Redirect to appropriate view based on mission state
+    if @mission.tickets.any?
+      redirect_to preview_mission_tickets_path(@mission)
+    elsif @mission.jql_query.present?
+      redirect_to query_mission_path(@mission)
+    end
+    # Otherwise render the show view (mission details page)
   end
 
   def create
@@ -48,10 +54,14 @@ class MissionsController < ApplicationController
     end
 
     begin
+      # Clear existing tickets if query has changed
+      if @mission.jql_query != jql_query
+        @mission.tickets.destroy_all
+      end
+
       @mission.save_jql_query!(jql_query)
       flash[:notice] = "JQL query saved successfully!"
-      # TODO: Redirect to UC003 (Preview Tickets) when implemented
-      redirect_to mission_path(@mission)
+      redirect_to preview_mission_tickets_path(@mission)
     rescue => e
       Rails.logger.error "Failed to save JQL query: #{e.message}"
       flash[:alert] = "Unable to save query. Please try again."

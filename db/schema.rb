@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_29_161200) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_30_073759) do
   create_table "missions", force: :cascade do |t|
     t.string "name"
     t.string "status"
@@ -18,4 +18,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_29_161200) do
     t.datetime "updated_at", null: false
     t.text "jql_query"
   end
+
+  create_table "tickets", id: :string, force: :cascade do |t|
+    t.string "mission_id", null: false
+    t.string "jira_key", null: false
+    t.string "summary", null: false
+    t.text "description"
+    t.string "status", null: false
+    t.string "priority"
+    t.string "assignee"
+    t.text "labels"
+    t.datetime "jira_created_at"
+    t.json "raw_data"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mission_id", "jira_key"], name: "index_tickets_on_mission_id_and_jira_key", unique: true
+    t.index ["mission_id"], name: "index_tickets_on_mission_id"
+  end
+
+  add_foreign_key "tickets", "missions"
 end

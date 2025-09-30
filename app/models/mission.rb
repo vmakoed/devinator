@@ -1,4 +1,6 @@
 class Mission < ApplicationRecord
+  has_many :tickets, dependent: :destroy
+
   validates :name, presence: true
   validates :status, presence: true
   validates :jql_query, presence: true, if: :jql_query_required?

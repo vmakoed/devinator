@@ -188,10 +188,9 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     mission.reload
     assert_equal query, mission.jql_query
     assert_equal "in_progress", mission.status
-    assert_redirected_to mission_path(mission)
+    assert_redirected_to preview_mission_tickets_path(mission)
 
-    follow_redirect!
-    assert_select ".bg-green-100", text: "JQL query saved successfully!"
+    assert_equal "JQL query saved successfully!", flash[:notice]
   end
 
   # UC002 AC08: User can modify and re-save query multiple times
@@ -261,7 +260,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     mission.reload
     assert_equal query, mission.jql_query
     assert_equal "in_progress", mission.status
-    assert_redirected_to mission_path(mission)
+    assert_redirected_to preview_mission_tickets_path(mission)
   end
 
   # UC002 TS003: Empty Query Validation
