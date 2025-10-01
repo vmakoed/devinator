@@ -79,7 +79,7 @@
                   <% end %>
                   <span class="text-xs text-gray-500">Score: <%= ticket.complexity_score %></span>
                   <% if ticket.devin_session_url.present? %>
-                    <%= link_to "View Devin Session →", ticket.devin_session_url, target: "_blank", class: "text-xs text-blue-600 hover:text-blue-800 font-medium" %>
+                    <%= link_to "View Devin Session →", sanitize_url(ticket.devin_session_url), target: "_blank", class: "text-xs text-blue-600 hover:text-blue-800 font-medium" %>
                   <% end %>
                 </div>
               </div>
