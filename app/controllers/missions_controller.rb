@@ -1,5 +1,5 @@
 class MissionsController < ApplicationController
-  before_action :set_mission, only: [:show, :query, :analyze, :save_selection, :assign]
+  before_action :set_mission, only: [ :show, :query, :analyze, :save_selection, :assign ]
 
   def index
     @missions = Mission.order(created_at: :desc)
@@ -7,7 +7,9 @@ class MissionsController < ApplicationController
 
   def show
     # Redirect to appropriate view based on mission state
-    if @mission.tickets.any?
+    if @mission.status == "assigned" && @mission.tickets.selected_for_assignment.any?
+      redirect_to assign_mission_path(@mission)
+    elsif @mission.tickets.any?
       redirect_to preview_mission_tickets_path(@mission)
     elsif @mission.jql_query.present?
       redirect_to query_mission_path(@mission)

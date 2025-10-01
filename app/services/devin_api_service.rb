@@ -66,7 +66,7 @@ class DevinApiService
 
     {
       prompt: prompt,
-      idempotent: true
+      title: ticket.jira_key
     }
   end
 

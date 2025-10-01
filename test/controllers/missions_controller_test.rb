@@ -1505,6 +1505,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     end
 
     mock_service.verify
+    assert_response :success
   end
 
   # BR09: Maximum 100 tickets can be assigned in one operation

@@ -164,8 +164,8 @@ class DevinApiServiceTest < ActiveSupport::TestCase
     payload = service.send(:build_payload, @ticket)
 
     assert payload.key?(:prompt)
-    assert payload.key?(:idempotent)
-    assert_equal true, payload[:idempotent]
+    assert payload.key?(:title)
+    assert_equal @ticket.jira_key, payload[:title]
 
     # Verify prompt includes ticket information
     prompt = payload[:prompt]
@@ -231,7 +231,7 @@ class DevinApiServiceTest < ActiveSupport::TestCase
         body["prompt"].include?(@ticket.jira_key) &&
         body["prompt"].include?(@ticket.summary) &&
         body["prompt"].include?(@ticket.complexity_category) &&
-        body["idempotent"] == true
+        body["title"] == @ticket.jira_key
       }
       .to_return(status: 200, body: { session_id: "test", url: "test", status: "created" }.to_json)
 
