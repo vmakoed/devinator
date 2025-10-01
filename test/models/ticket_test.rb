@@ -277,7 +277,7 @@ class TicketTest < ActiveSupport::TestCase
       "fields" => {
         "project" => { "key" => "TEST", "name" => "Test Project" },
         "issuetype" => { "name" => "Bug" },
-        "customFields" => ["field1", "field2"]
+        "customFields" => [ "field1", "field2" ]
       }
     }
 
@@ -436,7 +436,7 @@ class TicketTest < ActiveSupport::TestCase
   end
 
   test "should allow valid complexity_category values" do
-    ["low", "medium", "high"].each do |category|
+    [ "low", "medium", "high" ].each do |category|
       ticket = @mission.tickets.build(
         jira_key: "TEST-CAT-#{category}",
         summary: "Test category #{category}",

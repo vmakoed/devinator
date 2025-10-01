@@ -18,7 +18,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
 
     # Should show missions in descending order (newest first)
     mission_names = css_select(".text-sm.font-medium").map(&:text)
-    expected_order = [missions(:draft_mission).name, missions(:completed_mission).name]
+    expected_order = [ missions(:draft_mission).name, missions(:completed_mission).name ]
 
     # Note: This assumes fixtures are ordered correctly by created_at
     assert_equal expected_order.length, mission_names.length
@@ -198,8 +198,8 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
   test "should allow updating existing jql_query" do
     mission = missions(:draft_mission)
     mission.update!(
-      jql_query: 'old query',
-      status: 'in_progress'
+      jql_query: "old query",
+      status: "in_progress"
     )
 
     new_query = 'project = "TEST" AND issuetype = Bug'
@@ -283,7 +283,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
   # This test simulates save failure by triggering validation error
   test "should handle save failures gracefully" do
     mission = missions(:draft_mission)
-    mission.update!(status: 'in_progress', jql_query: 'existing query')  # Make jql_query required
+    mission.update!(status: "in_progress", jql_query: "existing query")  # Make jql_query required
 
     # Try to save nil jql_query which will fail validation
     patch query_mission_path(mission), params: {
@@ -369,7 +369,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Bug" },
-          "labels" => ["quick-win"]
+          "labels" => [ "quick-win" ]
         }
       }
     )
@@ -383,7 +383,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Task" },
-          "labels" => ["quick-win"]
+          "labels" => [ "quick-win" ]
         }
       }
     )
@@ -410,7 +410,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         raw_data: {
           "fields" => {
             "issuetype" => { "name" => "Epic" },
-            "labels" => ["complex"],
+            "labels" => [ "complex" ],
             "comment" => { "total" => 15 }
           }
         }
@@ -528,7 +528,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         raw_data: {
           "fields" => {
             "issuetype" => { "name" => "Bug" },
-            "labels" => ["quick-win"]
+            "labels" => [ "quick-win" ]
           }
         }
       )
@@ -559,7 +559,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Epic" },
-          "labels" => ["complex"],
+          "labels" => [ "complex" ],
           "comment" => { "total" => 12 }
         }
       }
@@ -587,7 +587,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
   test "should analyze tickets of different issue types" do
     mission = Mission.create!(name: "Test Mission", status: "in_progress", jql_query: "test")
 
-    ["Bug", "Task", "Story"].each_with_index do |issue_type, i|
+    [ "Bug", "Task", "Story" ].each_with_index do |issue_type, i|
       Ticket.create!(
         mission: mission,
         jira_key: "TEST-#{i + 1}",
@@ -775,7 +775,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
     medium = mission.tickets.medium_complexity.first
     high = mission.tickets.high_complexity.first
 
-    [low, medium, high].compact.each(&:select_for_assignment!)
+    [ low, medium, high ].compact.each(&:select_for_assignment!)
 
     # Verify selection counts in database
     mission.reload
@@ -873,7 +873,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Bug" },
-          "labels" => ["quick-win"]
+          "labels" => [ "quick-win" ]
         }
       }
     )
@@ -887,13 +887,13 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Task" },
-          "labels" => ["quick-win"]
+          "labels" => [ "quick-win" ]
         }
       }
     )
 
     # Analyze tickets
-    [bug, task].each { |t| TicketComplexityAnalyzer.new(t).analyze! }
+    [ bug, task ].each { |t| TicketComplexityAnalyzer.new(t).analyze! }
 
     get analyze_mission_path(mission)
 
@@ -946,7 +946,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         raw_data: {
           "fields" => {
             "issuetype" => { "name" => "Bug" },
-            "labels" => ["quick-win"]
+            "labels" => [ "quick-win" ]
           }
         }
       )
@@ -974,7 +974,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         raw_data: {
           "fields" => {
             "issuetype" => { "name" => "Bug" },
-            "labels" => ["complex"],
+            "labels" => [ "complex" ],
             "comment" => { "total" => 12 },
             "issuelinks" => Array.new(6, {})
           }
@@ -1007,7 +1007,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         raw_data: {
           "fields" => {
             "issuetype" => { "name" => "Bug" },
-            "labels" => ["quick-win"]
+            "labels" => [ "quick-win" ]
           }
         }
       )
@@ -1023,7 +1023,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Task" },
-          "labels" => ["quick-win"]
+          "labels" => [ "quick-win" ]
         }
       }
     )
@@ -1055,7 +1055,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       raw_data: {
         "fields" => {
           "issuetype" => { "name" => "Bug" },
-          "labels" => ["complex"],
+          "labels" => [ "complex" ],
           "comment" => { "total" => 12 },
           "issuelinks" => Array.new(6, {})
         }
@@ -1078,7 +1078,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         raw_data: {
           "fields" => {
             "issuetype" => { "name" => "Epic" },
-            "labels" => ["complex"],
+            "labels" => [ "complex" ],
             "comment" => { "total" => 15 }
           }
         }
@@ -1151,7 +1151,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         session_id: "devin_#{SecureRandom.hex(8)}",
         session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
         status: "created"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1187,7 +1187,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       session_id: "devin_abc123",
       session_url: "https://devin.ai/sessions/abc123",
       status: "created"
-    }, [Ticket]
+    }, [ Ticket ]
 
     DevinApiService.stub :new, mock_service do
       post assign_mission_path(mission)
@@ -1214,18 +1214,18 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
 
     # Simulate failures for tickets 3 and 7 (indices 2 and 6)
     tickets.each_with_index do |ticket, index|
-      if [2, 6].include?(index)
+      if [ 2, 6 ].include?(index)
         mock_service.expect :create_session, {
           success: false,
           error: "API rate limit exceeded"
-        }, [Ticket]
+        }, [ Ticket ]
       else
         mock_service.expect :create_session, {
           success: true,
           session_id: "devin_#{SecureRandom.hex(8)}",
           session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
           status: "created"
-        }, [Ticket]
+        }, [ Ticket ]
       end
     end
 
@@ -1261,7 +1261,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       mock_service.expect :create_session, {
         success: false,
         error: "Unable to connect to Devin API"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1291,7 +1291,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       mock_service.expect :create_session, {
         success: false,
         error: "Authentication failed. Please check API credentials."
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1316,15 +1316,15 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
 
     # Simulate timeouts for tickets 5 and 10 (indices 4 and 9)
     tickets.each_with_index do |ticket, index|
-      if [4, 9].include?(index)
-        mock_service.expect :create_session, -> (_) { raise DevinApiService::TimeoutError, "Request timed out" }, [Ticket]
+      if [ 4, 9 ].include?(index)
+        mock_service.expect :create_session, ->(_) { raise DevinApiService::TimeoutError, "Request timed out" }, [ Ticket ]
       else
         mock_service.expect :create_session, {
           success: true,
           session_id: "devin_#{SecureRandom.hex(8)}",
           session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
           status: "created"
-        }, [Ticket]
+        }, [ Ticket ]
       end
     end
 
@@ -1356,7 +1356,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         session_id: "devin_xyz789",
         session_url: "https://devin.ai/sessions/xyz789",
         status: "created"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1378,11 +1378,11 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       session_id: "devin_success",
       session_url: "https://devin.ai/sessions/success",
       status: "created"
-    }, [Ticket]
+    }, [ Ticket ]
     mock_service.expect :create_session, {
       success: false,
       error: "API quota exceeded or forbidden"
-    }, [Ticket]
+    }, [ Ticket ]
 
     DevinApiService.stub :new, mock_service do
       post assign_mission_path(mission)
@@ -1413,7 +1413,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         session_id: "devin_#{SecureRandom.hex(8)}",
         session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
         status: "created"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1438,7 +1438,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         session_id: "devin_unique_#{i}",
         session_url: "https://devin.ai/sessions/unique_#{i}",
         status: "created"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1498,7 +1498,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       session_id: "devin_test",
       session_url: "https://devin.ai/sessions/test",
       status: "created"
-    }, [ticket]
+    }, [ ticket ]
 
     DevinApiService.stub :new, mock_service do
       post assign_mission_path(mission)
@@ -1524,7 +1524,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         session_id: "devin_#{SecureRandom.hex(8)}",
         session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
         status: "created"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     DevinApiService.stub :new, mock_service do
@@ -1545,10 +1545,10 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       session_id: "devin_success",
       session_url: "https://devin.ai/sessions/success",
       status: "created"
-    }, [Ticket]
+    }, [ Ticket ]
 
     # Second ticket raises unexpected exception
-    mock_service.expect :create_session, -> (_) { raise StandardError, "Unexpected error occurred" }, [Ticket]
+    mock_service.expect :create_session, ->(_) { raise StandardError, "Unexpected error occurred" }, [ Ticket ]
 
     # Third ticket succeeds
     mock_service.expect :create_session, {
@@ -1556,7 +1556,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       session_id: "devin_success2",
       session_url: "https://devin.ai/sessions/success2",
       status: "created"
-    }, [Ticket]
+    }, [ Ticket ]
 
     DevinApiService.stub :new, mock_service do
       post assign_mission_path(mission)
@@ -1585,11 +1585,11 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
       session_id: "devin_1",
       session_url: "https://devin.ai/sessions/1",
       status: "created"
-    }, [Ticket]
+    }, [ Ticket ]
     mock_service.expect :create_session, {
       success: false,
       error: "Temporary failure"
-    }, [Ticket]
+    }, [ Ticket ]
 
     DevinApiService.stub :new, mock_service do
       post assign_mission_path(mission)
@@ -1620,7 +1620,7 @@ class MissionsControllerTest < ActionDispatch::IntegrationTest
         session_id: "devin_#{SecureRandom.hex(8)}",
         session_url: "https://devin.ai/sessions/#{SecureRandom.hex(8)}",
         status: "created"
-      }, [Ticket]
+      }, [ Ticket ]
     end
 
     before_time = Time.current

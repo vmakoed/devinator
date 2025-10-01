@@ -16,7 +16,7 @@ class CreateTickets < ActiveRecord::Migration[8.0]
     end
 
     add_index :tickets, :mission_id
-    add_index :tickets, [:mission_id, :jira_key], unique: true
+    add_index :tickets, [ :mission_id, :jira_key ], unique: true
     add_foreign_key :tickets, :missions
   end
 end

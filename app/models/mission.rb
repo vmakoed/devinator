@@ -5,10 +5,10 @@ class Mission < ApplicationRecord
   validates :status, presence: true
   validates :jql_query, presence: true, if: :jql_query_required?
 
-  scope :draft, -> { where(status: 'draft') }
-  scope :in_progress, -> { where(status: 'in_progress') }
-  scope :analyzed, -> { where(status: 'analyzed') }
-  scope :assigned, -> { where(status: 'assigned') }
+  scope :draft, -> { where(status: "draft") }
+  scope :in_progress, -> { where(status: "in_progress") }
+  scope :analyzed, -> { where(status: "analyzed") }
+  scope :assigned, -> { where(status: "assigned") }
 
   def self.generate_name
     "Mission - #{Time.current.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -16,7 +16,7 @@ class Mission < ApplicationRecord
 
   def save_jql_query!(query)
     self.jql_query = query
-    self.status = 'in_progress' if status == 'draft'
+    self.status = "in_progress" if status == "draft"
     save!
   end
 
@@ -31,6 +31,6 @@ class Mission < ApplicationRecord
   private
 
   def jql_query_required?
-    status == 'in_progress' || jql_query.present?
+    status == "in_progress" || jql_query.present?
   end
 end

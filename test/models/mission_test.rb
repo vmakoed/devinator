@@ -113,7 +113,7 @@ class MissionTest < ActiveSupport::TestCase
     mission = Mission.create!(
       name: "Test Mission",
       status: "in_progress",
-      jql_query: 'old query'
+      jql_query: "old query"
     )
     new_query = 'project = "TEST" AND issuetype = Bug'
 

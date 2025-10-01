@@ -34,7 +34,7 @@ class JiraServiceTest < ActiveSupport::TestCase
             "status" => { "name" => "Open" },
             "priority" => { "name" => "High" },
             "assignee" => { "displayName" => "John Doe", "emailAddress" => "john@example.com" },
-            "labels" => ["bug", "urgent"],
+            "labels" => [ "bug", "urgent" ],
             "created" => "2025-09-01T10:00:00.000+0000"
           }
         },
@@ -100,7 +100,7 @@ class JiraServiceTest < ActiveSupport::TestCase
   # UC003 AF3: Invalid JQL Query
   test "should raise InvalidQueryError for invalid JQL syntax" do
     error_response = {
-      "errorMessages" => ["Error in JQL query near 'AND'. Expected one of: '(', ')', ',', etc."]
+      "errorMessages" => [ "Error in JQL query near 'AND'. Expected one of: '(', ')', ',', etc." ]
     }
 
     invalid_query = "invalid JQL AND"
@@ -321,7 +321,7 @@ class JiraServiceTest < ActiveSupport::TestCase
   # Test error message parsing
   test "should parse error message from JIRA error response" do
     error_response = {
-      "errorMessages" => ["Custom error message from JIRA"]
+      "errorMessages" => [ "Custom error message from JIRA" ]
     }
 
     stub_request(:get, "#{@base_url}/rest/api/3/search/jql")

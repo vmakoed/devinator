@@ -217,7 +217,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
 
   # Test labels factor - quick-win
   test "should reduce complexity by 2 for quick-win label" do
-    ticket = create_ticket_with_labels(["quick-win"])
+    ticket = create_ticket_with_labels([ "quick-win" ])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
@@ -228,7 +228,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
 
   # Test labels factor - technical-debt
   test "should add 0 complexity for technical-debt label" do
-    ticket = create_ticket_with_labels(["technical-debt"])
+    ticket = create_ticket_with_labels([ "technical-debt" ])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
@@ -239,7 +239,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
 
   # Test labels factor - complex
   test "should add 3 complexity for complex label" do
-    ticket = create_ticket_with_labels(["complex"])
+    ticket = create_ticket_with_labels([ "complex" ])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
@@ -250,7 +250,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
 
   # Test labels factor - needs-investigation
   test "should add 2 complexity for needs-investigation label" do
-    ticket = create_ticket_with_labels(["needs-investigation"])
+    ticket = create_ticket_with_labels([ "needs-investigation" ])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
@@ -261,7 +261,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
 
   # Test labels factor - multiple labels
   test "should combine multiple label effects" do
-    ticket = create_ticket_with_labels(["quick-win", "complex"])
+    ticket = create_ticket_with_labels([ "quick-win", "complex" ])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
@@ -318,7 +318,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
   # AC03: Tickets are categorized into low/medium/high complexity groups
   # BR02: Low-complexity threshold is score 1-4
   test "should categorize score 1-4 as low complexity" do
-    ticket = create_ticket_with_labels(["quick-win"])
+    ticket = create_ticket_with_labels([ "quick-win" ])
 
     TicketComplexityAnalyzer.new(ticket).analyze!
 
@@ -345,7 +345,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
         "issuetype" => { "name" => "Epic" },
         "comment" => { "total" => 15 },
         "issuelinks" => Array.new(6, {}),
-        "labels" => ["complex"]
+        "labels" => [ "complex" ]
       }
     })
 
@@ -363,7 +363,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
       "fields" => {
         "description" => create_adf_document("A" * 1000),
         "issuetype" => { "name" => "Bug" },
-        "labels" => ["quick-win", "quick-win"],  # Attempt to reduce below 1
+        "labels" => [ "quick-win", "quick-win" ],  # Attempt to reduce below 1
         "comment" => { "total" => 0 },
         "issuelinks" => []
       }
@@ -381,7 +381,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
       "fields" => {
         "description" => create_adf_document("A" * 50),
         "issuetype" => { "name" => "Epic" },
-        "labels" => ["complex", "needs-investigation"],
+        "labels" => [ "complex", "needs-investigation" ],
         "comment" => { "total" => 20 },
         "issuelinks" => Array.new(10, {})
       }
@@ -402,7 +402,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
       "fields" => {
         "description" => create_adf_document("A" * 250),
         "issuetype" => { "name" => "Bug" },
-        "labels" => ["quick-win"],
+        "labels" => [ "quick-win" ],
         "comment" => { "total" => 4 },
         "issuelinks" => Array.new(2, {})
       }
@@ -480,7 +480,7 @@ class TicketComplexityAnalyzerTest < ActiveSupport::TestCase
     ticket.update_column(:raw_data, {
       "fields" => {
         "issuetype" => { "name" => "Bug" },
-        "labels" => ["complex"]
+        "labels" => [ "complex" ]
       }
     })
 

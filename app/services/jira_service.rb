@@ -1,6 +1,6 @@
-require 'net/http'
-require 'uri'
-require 'json'
+require "net/http"
+require "uri"
+require "json"
 
 class JiraService
   class JiraError < StandardError; end
@@ -8,9 +8,9 @@ class JiraService
   class ApiError < JiraError; end
 
   def initialize
-    @base_url = ENV.fetch('JIRA_BASE_URL', '')
-    @email = ENV.fetch('JIRA_EMAIL', '')
-    @api_token = ENV.fetch('JIRA_API_TOKEN', '')
+    @base_url = ENV.fetch("JIRA_BASE_URL", "")
+    @email = ENV.fetch("JIRA_EMAIL", "")
+    @api_token = ENV.fetch("JIRA_API_TOKEN", "")
   end
 
   def fetch_tickets(jql_query)
@@ -30,7 +30,7 @@ class JiraService
     query_params = URI.encode_www_form({
       jql: jql_query,
       maxResults: 100,
-      fields: 'key,summary,status,priority,assignee,created,labels,description,issuetype,comment,issuelinks'
+      fields: "key,summary,status,priority,assignee,created,labels,description,issuetype,comment,issuelinks"
     })
 
     uri = URI("#{@base_url}/rest/api/3/search/jql?#{query_params}")
@@ -48,9 +48,9 @@ class JiraService
   def headers
     auth_string = Base64.strict_encode64("#{@email}:#{@api_token}")
     {
-      'Authorization' => "Basic #{auth_string}",
-      'Content-Type' => 'application/json',
-      'Accept' => 'application/json'
+      "Authorization" => "Basic #{auth_string}",
+      "Content-Type" => "application/json",
+      "Accept" => "application/json"
     }
   end
 
@@ -75,9 +75,9 @@ class JiraService
 
   def parse_error_message(body)
     error_data = JSON.parse(body)
-    error_data.dig('errorMessages', 0) || error_data['error'] || 'Unknown error'
+    error_data.dig("errorMessages", 0) || error_data["error"] || "Unknown error"
   rescue JSON::ParserError
-    'Unknown error'
+    "Unknown error"
   end
 
   def parse_response(json_string)
@@ -85,25 +85,25 @@ class JiraService
 
     Rails.logger.info("JIRA Response: #{data.inspect}")
 
-    issues = data['issues'] || []
+    issues = data["issues"] || []
     {
-      total: data['total'] || issues.length,
+      total: data["total"] || issues.length,
       tickets: issues.map { |issue| parse_ticket(issue) }
     }
   end
 
   def parse_ticket(issue)
-    fields = issue['fields']
+    fields = issue["fields"]
 
     {
-      jira_key: issue['key'],
-      summary: fields['summary'],
-      description: fields['description'],
-      status: fields.dig('status', 'name'),
-      priority: fields.dig('priority', 'name'),
-      assignee: fields.dig('assignee', 'displayName') || fields.dig('assignee', 'emailAddress'),
-      labels: fields['labels']&.join(', '),
-      jira_created_at: fields['created'] ? Time.parse(fields['created']) : nil,
+      jira_key: issue["key"],
+      summary: fields["summary"],
+      description: fields["description"],
+      status: fields.dig("status", "name"),
+      priority: fields.dig("priority", "name"),
+      assignee: fields.dig("assignee", "displayName") || fields.dig("assignee", "emailAddress"),
+      labels: fields["labels"]&.join(", "),
+      jira_created_at: fields["created"] ? Time.parse(fields["created"]) : nil,
       raw_data: issue
     }
   end

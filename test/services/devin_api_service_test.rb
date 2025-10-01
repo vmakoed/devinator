@@ -18,7 +18,7 @@ class DevinApiServiceTest < ActiveSupport::TestCase
           "issuetype" => { "name" => "Bug" },
           "priority" => { "name" => "Medium" },
           "description" => "Test description",
-          "labels" => ["quick-win"]
+          "labels" => [ "quick-win" ]
         }
       }
     )

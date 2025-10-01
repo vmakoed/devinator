@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   root "missions#index"
 
-  resources :missions, only: [:index, :create, :show] do
+  resources :missions, only: [ :index, :create, :show ] do
     member do
       get :query
       patch :query
